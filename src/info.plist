@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.fniephaus.gmail</string>
+	<key>category</key>
+	<string>Tools</string>
+	<key>connections</key>
+	<dict>
+		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>489D8E32-3CF3-454C-A8DD-F43FE0BAD27A</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>Fabio Niephaus</string>
+	<key>description</key>
+	<string>Manage your Gmail mails with Alfred</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Gmail for Alfred</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>gmail</string>
+				<key>runningsubtext</key>
+				<string>Contacting getpocket.com...</string>
+				<key>script</key>
+				<string>python gmail.py "{query}"</string>
+				<key>subtext</key>
+				<string>Manage your Gmail mails with Alfred</string>
+				<key>title</key>
+				<string>Gmail</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>plusspaces</key>
+				<false/>
+				<key>url</key>
+				<string>https://mail.google.com/mail/u/0/?ui=2&amp;pli=1#inbox/{query}</string>
+				<key>utf8</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.openurl</string>
+			<key>uid</key>
+			<string>489D8E32-3CF3-454C-A8DD-F43FE0BAD27A</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string></string>
+	<key>uidata</key>
+	<dict>
+		<key>489D8E32-3CF3-454C-A8DD-F43FE0BAD27A</key>
+		<dict>
+			<key>ypos</key>
+			<real>10</real>
+		</dict>
+		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
+		<dict>
+			<key>ypos</key>
+			<real>10</real>
+		</dict>
+	</dict>
+	<key>webaddress</key>
+	<string>https://github.com/fniephaus/alfred2/</string>
+</dict>
+</plist>
