@@ -78,7 +78,7 @@
 				<key>keyword</key>
 				<string>gmail</string>
 				<key>runningsubtext</key>
-				<string>Contacting getpocket.com...</string>
+				<string>Contacting gmail.com...</string>
 				<key>script</key>
 				<string>python gmail.py "{query}"</string>
 				<key>subtext</key>

@@ -8,6 +8,7 @@ from workflow import Workflow, PasswordNotFound
 
 import config
 
+
 class PseudoStorage():
 
     def put(self, value):
@@ -16,12 +17,12 @@ class PseudoStorage():
 
 def get_list(wf, gmail_service):
     # Retrieve a page of threads
-    threads = gmail_service.users().threads().list(userId='me').execute()
+    threads = gmail_service.users().threads().list(
+        userId='me', labelIds=['INBOX'], maxResults=50).execute()
 
     # Receive emails
     email_list = []
     if threads['threads']:
-        i = 0
         for thread in threads['threads']:
             thread_details = gmail_service.users().threads().get(
                 userId='me', id=thread['id']).execute()
@@ -39,27 +40,23 @@ def get_list(wf, gmail_service):
 
                 if 'snippet' in thread_details['messages'][0]:
                     message['snippet'] = thread_details[
-                        'messages'][0]['snippet']
+                        'messages'][0]['snippet'].encode('ascii', 'xmlcharrefreplace')
 
                 for header in thread_details['messages'][0]['payload']['headers']:
                     if header['name'] in message:
                         message[header['name']] = header[
-                            'value'].encode('utf-8')
+                            'value'].encode('ascii', 'xmlcharrefreplace')
 
             email_list.append(message)
 
-            if i < 9:
-                i += 1
-            else:
-                break
-
     return email_list
 
-if __name__ == '__main__':
-    wf = Workflow()
 
+def refresh_cache():
+    wf = Workflow()
     # Start the OAuth flow to retrieve credentials
-    flow = flow_from_clientsecrets(config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
+    flow = flow_from_clientsecrets(
+        config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
     http = httplib2.Http()
 
     try:
@@ -76,14 +73,15 @@ if __name__ == '__main__':
         gmail_service = build('gmail', 'v1', http=http)
 
         def wrapper():
-            global gmail_service
-
             return get_list(wf, gmail_service)
 
-        wf.cached_data('gmail_list', data_func=wrapper, max_age=10)
+        wf.cached_data('gmail_list', data_func=wrapper, max_age=30)
 
     except PasswordNotFound:
         wf.logger.debug('Credentials not found')
         credentials = run(flow, PseudoStorage(), http=http)
         wf.save_password('gmail_credentials', credentials.to_json())
         wf.logger.debug('New Credentials securely saved')
+
+if __name__ == '__main__':
+    refresh_cache()
