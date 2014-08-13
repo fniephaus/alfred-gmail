@@ -34,8 +34,9 @@ def main(wf):
                     :item['From'].find("<") - 1].replace('"', '')
                 title = '%s: %s' % (name, item['Subject'])
                 subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
+                arg = '%s %s' % (item['thread_id'], item['id'])
 
-                wf.add_item(title, subtitle, arg=item['id'], valid=True)
+                wf.add_item(title, subtitle, arg=arg, valid=True)
     else:
         wf.add_item("Could receive your emails.",
                     "Please try again or file a bug report!", valid=False)

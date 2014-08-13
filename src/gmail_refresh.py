@@ -2,19 +2,11 @@ import httplib2
 
 from apiclient.discovery import build
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
-# from oauth2client.file import Storage
 from oauth2client.tools import run
 
 from workflow import Workflow, PasswordNotFound
 
 import config
-
-# Path to the client_secret.json file downloaded from the Developer Console
-CLIENT_SECRET_FILE = 'client_secret.json'
-
-# Check https://developers.google.com/gmail/api/auth/scopes for all available scopes
-OAUTH_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
-
 
 class PseudoStorage():
 
@@ -37,6 +29,7 @@ def get_list(wf, gmail_service):
                 'Date': None,
                 'From': None,
                 'id': None,
+                'thread_id': thread['id'],
                 'snippet': None,
                 'Subject': None,
             }
@@ -66,7 +59,7 @@ if __name__ == '__main__':
     wf = Workflow()
 
     # Start the OAuth flow to retrieve credentials
-    flow = flow_from_clientsecrets(CLIENT_SECRET_FILE, scope=OAUTH_SCOPE)
+    flow = flow_from_clientsecrets(config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
     http = httplib2.Http()
 
     try:
@@ -75,19 +68,22 @@ if __name__ == '__main__':
         if credentials is None or credentials.invalid:
             credentials = run(flow, PseudoStorage(), http=http)
             wf.save_password('gmail_credentials', credentials.to_json())
+            wf.logger.debug('Credentials securely updated')
+
+        # Authorize the httplib2.Http object with our credentials
+        http = credentials.authorize(http)
+        # Build the Gmail service from discovery
+        gmail_service = build('gmail', 'v1', http=http)
 
         def wrapper():
-            global http
-            # Authorize the httplib2.Http object with our credentials
-            http = credentials.authorize(http)
-            # Build the Gmail service from discovery
-            gmail_service = build('gmail', 'v1', http=http)
+            global gmail_service
+
             return get_list(wf, gmail_service)
 
-        wf.cached_data('gmail_list', data_func=wrapper, max_age=1)
+        wf.cached_data('gmail_list', data_func=wrapper, max_age=10)
 
     except PasswordNotFound:
-
-        # Run the flow to generate credentials
+        wf.logger.debug('Credentials not found')
         credentials = run(flow, PseudoStorage(), http=http)
         wf.save_password('gmail_credentials', credentials.to_json())
+        wf.logger.debug('New Credentials securely saved')

@@ -1,10 +1,13 @@
 import argparse
 import os
 import sys
-from pocket import Pocket
-from pocket_alfred import refresh_list
-from workflow import Workflow
-from workflow.background import run_in_background
+import httplib2
+
+from apiclient.discovery import build
+from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
+from oauth2client.tools import run
+
+from workflow import Workflow, PasswordNotFound
 
 import config
 
@@ -14,74 +17,87 @@ def execute(wf):
     parser.add_argument(
         '--copy', dest='copy', action='store_true', default=None)
     parser.add_argument(
-        '--visit-and-archive', dest='visit_archive', action='store_true', default=None)
+        '--trash-mail', dest='trash_message', action='store_true', default=None)
     parser.add_argument(
-        '--archive', dest='archive', action='store_true', default=None)
-    parser.add_argument(
-        '--delete', dest='delete', action='store_true', default=None)
+        '--trash-conversation', dest='trash_conversation', action='store_true', default=None)
     parser.add_argument(
         '--deauthorize', dest='deauthorize', action='store_true', default=None)
     parser.add_argument('query', nargs='?', default=None)
     args = parser.parse_args(wf.args)
 
+    # Start the OAuth flow to retrieve credentials
+    flow = flow_from_clientsecrets(
+        config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
+    http = httplib2.Http()
+
+    try:
+        credentials = OAuth2Credentials.from_json(
+            wf.get_password('gmail_credentials'))
+        if credentials is None or credentials.invalid:
+            credentials = run(flow, PseudoStorage(), http=http)
+            wf.save_password('gmail_credentials', credentials.to_json())
+
+        # Authorize the httplib2.Http object with our credentials
+        http = credentials.authorize(http)
+        # Build the Gmail service from discovery
+        gmail_service = build('gmail', 'v1', http=http)
+    except PasswordNotFound:
+        wf.logger.error('Credentials not found')
+
     if args.query is not None:
         query = args.query.split()
-        if len(query) > 0:
-            url = query[0]
-        if len(query) > 1:
-            item_id = query[1]
+        wf.logger.debug(query)
 
-        if args.copy:
-            print set_clipboard(url)
+        if len(query) < 2:
             return 0
-        elif args.visit_archive:
-            open_url(url)
-            refresh_list(wf)
-            print archive_item(item_id)
+
+        thread_id = query[0]
+        message_id = query[1]
+
+        if args.trash_message:
+            print trash_message(message_id, gmail_service)
             return 0
-        elif args.archive:
-            refresh_list(wf)
-            print archive_item(item_id)
-            return 0
-        elif args.delete:
-            refresh_list(wf)
-            print delete_item(item_id)
+        elif args.trash_conversation:
+            print trash_conversation(thread_id, gmail_service)
             return 0
         elif args.deauthorize:
-            wf.delete_password('pocket_access_token')
+            wf.delete_password('gmail_credentials')
             print "Workflow deauthorized"
             return 0
         else:
-            open_url(url)
+            open_message(wf, message_id)
             return 0
 
 
-def open_url(url):
-    os.system('open %s' % url)
+def open_message(wf, message_id):
+    url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
+    wf.logger.debug(url)
+    os.system('open "%s"' % url)
 
 
-def set_clipboard(url):
-    clipboard = os.popen(
-        """ osascript -e 'set the clipboard to "%s"' """ % url).readline()
-    return 'Link copied to clipboard'
-
-
-def archive_item(item_id):
-    access_token = wf.get_password('pocket_access_token')
-    pocket_instance = Pocket(config.CONSUMER_KEY, access_token)
+def trash_message(message_id, gmail_service):
     try:
-        pocket_instance.archive(item_id, wait=False)
-        return 'Link archived'
+        # Trash message
+        message = gmail_service.users().messages().trash(
+            userId='me', id=message_id).execute()
+        if u'labelIds' in message and u'TRASH' in message['labelIds']:
+            return 'Mail moved to trash.'
+        else:
+            return 'An error occurred.'
     except Exception:
         return 'Connection error'
 
 
-def delete_item(item_id):
-    access_token = wf.get_password('pocket_access_token')
-    pocket_instance = Pocket(config.CONSUMER_KEY, access_token)
+def trash_conversation(thread_id, gmail_service):
     try:
-        pocket_instance.delete(item_id, wait=False)
-        return 'Link deleted'
+        # Trash conversation
+        thread = gmail_service.users().threads().trash(
+            userId='me', id=thread_id).execute()
+
+        if all(u'labelIds' in message and u'TRASH' in message['labelIds'] for message in thread['messages']):
+            return 'Conversation moved to trash.'
+        else:
+            return 'An error occurred.'
     except Exception:
         return 'Connection error'
 
