@@ -99,11 +99,11 @@
 	<key>createdby</key>
 	<string>Fabio Niephaus</string>
 	<key>description</key>
-	<string>Manage your Gmail mails with Alfred</string>
+	<string>Manage your Gmail inbox with Alfred</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
-	<string>Gmail for Alfred</string>
+	<string>Gmail Client for Alfred</string>
 	<key>objects</key>
 	<array>
 		<dict>
@@ -120,7 +120,7 @@
 				<key>script</key>
 				<string>python gmail.py "{query}"</string>
 				<key>subtext</key>
-				<string>Manage your Gmail mails with Alfred</string>
+				<string>Manage your Gmail inbox with Alfred</string>
 				<key>title</key>
 				<string>Gmail</string>
 				<key>type</key>
@@ -151,7 +151,7 @@
 				<key>text</key>
 				<string>{query}</string>
 				<key>title</key>
-				<string>Gmail for Alfred</string>
+				<string>Gmail Client for Alfred</string>
 			</dict>
 			<key>type</key>
 			<string>alfred.workflow.output.notification</string>

@@ -1,4 +1,4 @@
-Gmail for Alfred
+Gmail Client for Alfred
 ==============
 
 *This is work in progress!*
