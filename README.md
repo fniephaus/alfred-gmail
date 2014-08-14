@@ -1,9 +1,9 @@
 Gmail Client for Alfred
 ==============
 
-*This is work in progress!*
-
 This workflow lets you manage your Gmail inbox with Alfred.
+
+![Gmail Client for Alfred Screenshot](https://raw.github.com/fniephaus/alfred-gmail/master/screenshot.gif)
 
 ## Features
 
