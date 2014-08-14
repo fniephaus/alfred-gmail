@@ -5,6 +5,9 @@ This workflow lets you manage your Gmail inbox with Alfred.
 
 ![Gmail Client for Alfred Screenshot](https://raw.github.com/fniephaus/alfred-gmail/master/screenshot.gif)
 
+## Notice
+For the best experience, uncheck both `gmail` entries in Alfred's Web Search settings!
+
 ## Features
 
 - Quickly access your latest emails with Alfred
