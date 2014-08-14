@@ -11,7 +11,6 @@ def main(wf):
     else:
         query = None
 
-
     if not wf.cached_data_fresh('gmail_list', max_age=3600):
         refresh_cache()
     item_list = wf.cached_data('gmail_list', None, max_age=0)
@@ -23,9 +22,17 @@ def main(wf):
             for index, item in enumerate(item_list):
                 name = item['From'][
                     :item['From'].find("<") - 1].replace('"', '')
-                title = '%s: %s' % (name, item['Subject'])
+                title = '%s (%s): %s' % (
+                    name, item['messages_count'], item['Subject'])
+                if item['unread']:
+                    title = '+ %s' % title
+                else:
+                    title = '- %s' % title
                 subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
-                arg = '%s %s' % (item['thread_id'], item['id'])
+                arg = '%s %s' % (item['threadId'], item['id'])
+
+                title = title.decode('utf-8', 'ignore')
+                subtitle = subtitle.decode('utf-8', 'ignore')
 
                 if not query or query.lower() in ' '.join([title, subtitle]).lower():
                     wf.add_item(title, subtitle, arg=arg, valid=True)

@@ -8,6 +8,17 @@
 	<string>Tools</string>
 	<key>connections</key>
 	<dict>
+		<key>025C8AA4-75F2-41DB-9BC6-AB8D7D125325</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>6DAAEEB8-467C-45D3-A423-E03D9AAE6605</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
 		<key>1656B006-EFBF-4B5A-97FC-314367CCACE4</key>
 		<array>
 			<dict>
@@ -30,6 +41,17 @@
 				<string></string>
 			</dict>
 		</array>
+		<key>3175C26B-F8B6-4845-983F-F70FEE68B12E</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>6DAAEEB8-467C-45D3-A423-E03D9AAE6605</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
 		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
 		<array>
 			<dict>
@@ -39,6 +61,14 @@
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>025C8AA4-75F2-41DB-9BC6-AB8D7D125325</string>
+				<key>modifiers</key>
+				<integer>262144</integer>
+				<key>modifiersubtext</key>
+				<string>Archive Conversation</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -52,9 +82,17 @@
 				<key>destinationuid</key>
 				<string>2DCFD4C5-5CC5-4983-B5D9-94832C477A78</string>
 				<key>modifiers</key>
-				<integer>262144</integer>
+				<integer>1048576</integer>
 				<key>modifiersubtext</key>
 				<string>Move Conversation to Trash</string>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>3175C26B-F8B6-4845-983F-F70FEE68B12E</string>
+				<key>modifiers</key>
+				<integer>131072</integer>
+				<key>modifiersubtext</key>
+				<string>Deauthorize Workflow</string>
 			</dict>
 		</array>
 	</dict>
@@ -145,6 +183,23 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
+				<string>python gmail_launcher.py --archive-conversation "{query}"</string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>025C8AA4-75F2-41DB-9BC6-AB8D7D125325</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
 				<string>python gmail_launcher.py --trash-message "{query}"</string>
 				<key>type</key>
 				<integer>0</integer>
@@ -173,20 +228,47 @@
 			<key>version</key>
 			<integer>0</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>python gmail_launcher.py --deauthorize True</string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>3175C26B-F8B6-4845-983F-F70FEE68B12E</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string></string>
 	<key>uidata</key>
 	<dict>
+		<key>025C8AA4-75F2-41DB-9BC6-AB8D7D125325</key>
+		<dict>
+			<key>ypos</key>
+			<real>120</real>
+		</dict>
 		<key>1656B006-EFBF-4B5A-97FC-314367CCACE4</key>
 		<dict>
 			<key>ypos</key>
-			<real>130</real>
+			<real>230</real>
 		</dict>
 		<key>2DCFD4C5-5CC5-4983-B5D9-94832C477A78</key>
 		<dict>
 			<key>ypos</key>
-			<real>250</real>
+			<real>340</real>
+		</dict>
+		<key>3175C26B-F8B6-4845-983F-F70FEE68B12E</key>
+		<dict>
+			<key>ypos</key>
+			<real>450</real>
 		</dict>
 		<key>3A4F3514-35F3-468B-836B-1493954FDCF8</key>
 		<dict>

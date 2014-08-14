@@ -15,7 +15,7 @@ import config
 def execute(wf):
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--copy', dest='copy', action='store_true', default=None)
+        '--archive-conversation', dest='archive_conversation', action='store_true', default=None)
     parser.add_argument(
         '--trash-mail', dest='trash_message', action='store_true', default=None)
     parser.add_argument(
@@ -40,13 +40,17 @@ def execute(wf):
         # Authorize the httplib2.Http object with our credentials
         http = credentials.authorize(http)
         # Build the Gmail service from discovery
-        gmail_service = build('gmail', 'v1', http=http)
+        service = build('gmail', 'v1', http=http)
     except PasswordNotFound:
         wf.logger.error('Credentials not found')
 
     if args.query is not None:
         query = args.query.split()
-        wf.logger.debug(query)
+
+        if args.deauthorize:
+            wf.delete_password('gmail_credentials')
+            print "Workflow deauthorized."
+            return 0
 
         if len(query) < 2:
             return 0
@@ -54,15 +58,14 @@ def execute(wf):
         thread_id = query[0]
         message_id = query[1]
 
-        if args.trash_message:
-            print trash_message(message_id, gmail_service)
+        if args.archive_conversation:
+            print archive_conversation(thread_id, service)
+            return 0
+        elif args.trash_message:
+            print trash_message(message_id, service)
             return 0
         elif args.trash_conversation:
-            print trash_conversation(thread_id, gmail_service)
-            return 0
-        elif args.deauthorize:
-            wf.delete_password('gmail_credentials')
-            print "Workflow deauthorized"
+            print trash_conversation(thread_id, service)
             return 0
         else:
             open_message(wf, message_id)
@@ -75,10 +78,23 @@ def open_message(wf, message_id):
     os.system('open "%s"' % url)
 
 
-def trash_message(message_id, gmail_service):
+def archive_conversation(thread_id, service):
+    try:
+        # Archive conversation
+        thread = service.users().threads().modify(
+            userId='me', id=thread_id, body={'removeLabelIds': ['INBOX']}).execute()
+        if all(u'labelIds' in message and u'INBOX' not in message['labelIds'] for message in thread['messages']):
+            return 'Conversation archived.'
+        else:
+            return 'An error occurred.'
+    except Exception:
+        return 'Connection error'
+
+
+def trash_message(message_id, service):
     try:
         # Trash message
-        message = gmail_service.users().messages().trash(
+        message = service.users().messages().trash(
             userId='me', id=message_id).execute()
         if u'labelIds' in message and u'TRASH' in message['labelIds']:
             return 'Mail moved to trash.'
@@ -88,10 +104,10 @@ def trash_message(message_id, gmail_service):
         return 'Connection error'
 
 
-def trash_conversation(thread_id, gmail_service):
+def trash_conversation(thread_id, service):
     try:
         # Trash conversation
-        thread = gmail_service.users().threads().trash(
+        thread = service.users().threads().trash(
             userId='me', id=thread_id).execute()
 
         if all(u'labelIds' in message and u'TRASH' in message['labelIds'] for message in thread['messages']):

@@ -1,12 +1,15 @@
 import httplib2
 
 from apiclient.discovery import build
+from apiclient.http import BatchHttpRequest
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
 from oauth2client.tools import run
 
 from workflow import Workflow, PasswordNotFound
 
 import config
+
+EMAIL_LIST = []
 
 
 class PseudoStorage():
@@ -15,41 +18,55 @@ class PseudoStorage():
         pass
 
 
-def get_list(wf, gmail_service):
+def list_threads(request_id, response, exception):
+    if exception is None:
+        thread = {
+            'Date': None,
+            'From': None,
+            'id': None,
+            'messages_count': None,
+            'snippet': None,
+            'Subject': None,
+            'threadId': None,
+            'unread': None,
+        }
+        if 'messages' in response and len(response['messages']) > 0:
+            if 'id' in response['messages'][-1]:
+                thread['id'] = response['messages'][-1]['id']
+
+            if 'threadId' in response['messages'][-1]:
+                thread['threadId'] = response['messages'][-1]['threadId']
+
+            if 'snippet' in response['messages'][-1]:
+                thread['snippet'] = response[
+                    'messages'][-1]['snippet'].encode('utf-8')
+
+            for header in response['messages'][-1]['payload']['headers']:
+                if header['name'] in thread:
+                    thread[header['name']] = header[
+                        'value'].encode('utf-8')
+
+            thread['messages_count'] = len(response['messages'])
+            thread['unread'] = 'UNREAD' in response['messages'][-1]['labelIds']
+
+        EMAIL_LIST.append(thread)
+
+
+def get_list(wf, http, service):
     # Retrieve a page of threads
-    threads = gmail_service.users().threads().list(
-        userId='me', labelIds=['INBOX'], maxResults=50).execute()
+    threads = service.users().threads().list(
+        userId='me', labelIds=['INBOX'], maxResults=100).execute()
 
-    # Receive emails
-    email_list = []
+    batch = BatchHttpRequest()
     if threads['threads']:
+        fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
         for thread in threads['threads']:
-            thread_details = gmail_service.users().threads().get(
-                userId='me', id=thread['id']).execute()
-            message = {
-                'Date': None,
-                'From': None,
-                'id': None,
-                'thread_id': thread['id'],
-                'snippet': None,
-                'Subject': None,
-            }
-            if 'messages' in thread_details and len(thread_details['messages']) > 0:
-                if 'id' in thread_details['messages'][0]:
-                    message['id'] = thread_details['messages'][0]['id']
+            batch.add(service.users().threads().get(
+                userId='me', id=thread['id'], fields=fields), callback=list_threads)
 
-                if 'snippet' in thread_details['messages'][0]:
-                    message['snippet'] = thread_details[
-                        'messages'][0]['snippet'].encode('ascii', 'xmlcharrefreplace')
+    batch.execute(http=http)
 
-                for header in thread_details['messages'][0]['payload']['headers']:
-                    if header['name'] in message:
-                        message[header['name']] = header[
-                            'value'].encode('ascii', 'xmlcharrefreplace')
-
-            email_list.append(message)
-
-    return email_list
+    return EMAIL_LIST
 
 
 def refresh_cache():
@@ -73,9 +90,9 @@ def refresh_cache():
         gmail_service = build('gmail', 'v1', http=http)
 
         def wrapper():
-            return get_list(wf, gmail_service)
+            return get_list(wf, http, gmail_service)
 
-        wf.cached_data('gmail_list', data_func=wrapper, max_age=30)
+        wf.cached_data('gmail_list', data_func=wrapper, max_age=10)
 
     except PasswordNotFound:
         wf.logger.debug('Credentials not found')
