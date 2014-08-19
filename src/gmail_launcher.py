@@ -79,7 +79,6 @@ def execute(wf):
 
 def open_message(wf, message_id):
     url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
-    wf.logger.debug(url)
     os.system('open "%s"' % url)
 
 
