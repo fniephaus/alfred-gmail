@@ -52,6 +52,17 @@
 				<string></string>
 			</dict>
 		</array>
+		<key>5081EDFD-6764-4EBC-B6D1-04AE1836C1ED</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>6DAAEEB8-467C-45D3-A423-E03D9AAE6605</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
 		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
 		<array>
 			<dict>
@@ -61,6 +72,14 @@
 				<integer>0</integer>
 				<key>modifiersubtext</key>
 				<string></string>
+			</dict>
+			<dict>
+				<key>destinationuid</key>
+				<string>5081EDFD-6764-4EBC-B6D1-04AE1836C1ED</string>
+				<key>modifiers</key>
+				<integer>8388608</integer>
+				<key>modifiersubtext</key>
+				<string>Mark Conversation As Read</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -76,7 +95,7 @@
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
-				<string>Move Message to Trash</string>
+				<string>Move Message To Trash</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -84,7 +103,7 @@
 				<key>modifiers</key>
 				<integer>1048576</integer>
 				<key>modifiersubtext</key>
-				<string>Move Conversation to Trash</string>
+				<string>Move Conversation To Trash</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -183,6 +202,23 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
+				<string>python gmail_launcher.py --mark-as-read "{query}"</string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>5081EDFD-6764-4EBC-B6D1-04AE1836C1ED</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
 				<string>python gmail_launcher.py --archive-conversation "{query}"</string>
 				<key>type</key>
 				<integer>0</integer>
@@ -253,27 +289,32 @@
 		<key>025C8AA4-75F2-41DB-9BC6-AB8D7D125325</key>
 		<dict>
 			<key>ypos</key>
-			<real>120</real>
+			<real>230</real>
 		</dict>
 		<key>1656B006-EFBF-4B5A-97FC-314367CCACE4</key>
 		<dict>
 			<key>ypos</key>
-			<real>230</real>
+			<real>340</real>
 		</dict>
 		<key>2DCFD4C5-5CC5-4983-B5D9-94832C477A78</key>
 		<dict>
 			<key>ypos</key>
-			<real>340</real>
+			<real>450</real>
 		</dict>
 		<key>3175C26B-F8B6-4845-983F-F70FEE68B12E</key>
 		<dict>
 			<key>ypos</key>
-			<real>450</real>
+			<real>560</real>
 		</dict>
 		<key>3A4F3514-35F3-468B-836B-1493954FDCF8</key>
 		<dict>
 			<key>ypos</key>
 			<real>10</real>
+		</dict>
+		<key>5081EDFD-6764-4EBC-B6D1-04AE1836C1ED</key>
+		<dict>
+			<key>ypos</key>
+			<real>120</real>
 		</dict>
 		<key>6DAAEEB8-467C-45D3-A423-E03D9AAE6605</key>
 		<dict>

@@ -15,6 +15,8 @@ import config
 def execute(wf):
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        '--mark-as-read', dest='mark_as_read', action='store_true', default=None)
+    parser.add_argument(
         '--archive-conversation', dest='archive_conversation', action='store_true', default=None)
     parser.add_argument(
         '--trash-mail', dest='trash_message', action='store_true', default=None)
@@ -58,7 +60,10 @@ def execute(wf):
         thread_id = query[0]
         message_id = query[1]
 
-        if args.archive_conversation:
+        if args.mark_as_read:
+            print mark_conversation_as_read(thread_id, service)
+            return 0
+        elif args.archive_conversation:
             print archive_conversation(thread_id, service)
             return 0
         elif args.trash_message:
@@ -76,6 +81,19 @@ def open_message(wf, message_id):
     url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
     wf.logger.debug(url)
     os.system('open "%s"' % url)
+
+
+def mark_conversation_as_read(thread_id, service):
+    try:
+        # Archive conversation
+        thread = service.users().threads().modify(
+            userId='me', id=thread_id, body={'removeLabelIds': ['UNREAD']}).execute()
+        if all(u'labelIds' in message and u'UNREAD' not in message['labelIds'] for message in thread['messages']):
+            return 'Conversation marked as read.'
+        else:
+            return 'An error occurred.'
+    except Exception:
+        return 'Connection error'
 
 
 def archive_conversation(thread_id, service):
