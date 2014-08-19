@@ -11,7 +11,7 @@ For the best experience, uncheck both `gmail` entries in Alfred's Web Search set
 ## Features
 
 - Quickly access your latest emails with Alfred
-- Actions to archive and delete conversations and emails (`ctrl`, `alt` and `cmd`)
+- Actions to mark as read, archive and delete conversations and single emails (`fb`, `ctrl`, `alt` and `cmd`)
 - Background cache refresh
 - Uses the official Gmail API to securely access your Gmail account
 - Uses OAuth 2.0 to authorize the workflow
