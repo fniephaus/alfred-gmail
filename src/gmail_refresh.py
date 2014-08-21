@@ -58,13 +58,13 @@ def get_list(wf, http, service):
         userId='me', labelIds=['INBOX'], maxResults=100).execute()
 
     batch = BatchHttpRequest()
-    if threads['threads']:
+    if 'threads' in threads and len(threads['threads']) > 0:
         fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
         for thread in threads['threads']:
             batch.add(service.users().threads().get(
                 userId='me', id=thread['id'], fields=fields), callback=list_threads)
 
-    batch.execute(http=http)
+        batch.execute(http=http)
 
     return EMAIL_LIST
 
@@ -89,10 +89,7 @@ def refresh_cache():
         # Build the Gmail service from discovery
         gmail_service = build('gmail', 'v1', http=http)
 
-        def wrapper():
-            return get_list(wf, http, gmail_service)
-
-        wf.cached_data('gmail_list', data_func=wrapper, max_age=10)
+        wf.cache_data('gmail_list', get_list(wf, http, gmail_service))
 
     except PasswordNotFound:
         wf.logger.debug('Credentials not found')
