@@ -1,6 +1,8 @@
 import argparse
 import os
+import subprocess
 import sys
+import json
 import httplib2
 
 from apiclient.discovery import build
@@ -8,6 +10,7 @@ from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
 from oauth2client.tools import run
 
 from workflow import Workflow, PasswordNotFound
+from gmail_refresh import refresh_cache
 
 import config
 
@@ -47,39 +50,40 @@ def execute(wf):
         wf.logger.error('Credentials not found')
 
     if args.query is not None:
-        query = args.query.split()
 
         if args.deauthorize:
             wf.delete_password('gmail_credentials')
             print "Workflow deauthorized."
             return 0
 
-        if len(query) < 2:
+        query = json.loads(args.query)
+        try:
+            thread_id = query['thread_id']
+            message_id = query['message_id']
+        except KeyError:
             return 0
 
-        thread_id = query[0]
-        message_id = query[1]
-
+        target = None
         if args.mark_as_read:
             print mark_conversation_as_read(thread_id, service)
-            return 0
+            target = query['query']
         elif args.archive_conversation:
             print archive_conversation(thread_id, service)
-            return 0
         elif args.trash_message:
             print trash_message(message_id, service)
-            return 0
         elif args.trash_conversation:
             print trash_conversation(thread_id, service)
-            return 0
         else:
             open_message(wf, message_id)
+            refresh_cache()
             return 0
+        refresh_cache()
+        open_alfred(target)
 
 
 def open_message(wf, message_id):
     url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
-    os.system('open "%s"' % url)
+    subprocess.call(['open', url])
 
 
 def mark_conversation_as_read(thread_id, service):
@@ -134,6 +138,12 @@ def trash_conversation(thread_id, service):
     except Exception:
         return 'Connection error'
 
+
+def open_alfred(query=None):
+    query = query or ''
+    os.system(
+        """ osascript -e 'tell application "Alfred 2" to search "gmail %s"' """ %
+        query)
 
 if __name__ == '__main__':
     wf = Workflow()

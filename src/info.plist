@@ -114,6 +114,17 @@
 				<string>Deauthorize Workflow</string>
 			</dict>
 		</array>
+		<key>F430998B-F7F1-4360-9E3F-B09A2F665025</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
 	</dict>
 	<key>createdby</key>
 	<string>Fabio Niephaus</string>
@@ -125,6 +136,33 @@
 	<string>Gmail Client for Alfred</string>
 	<key>objects</key>
 	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>action</key>
+				<integer>0</integer>
+				<key>argument</key>
+				<integer>0</integer>
+				<key>hotkey</key>
+				<integer>5</integer>
+				<key>hotmod</key>
+				<integer>1572864</integer>
+				<key>hotstring</key>
+				<string>G</string>
+				<key>leftcursor</key>
+				<false/>
+				<key>modsmode</key>
+				<integer>0</integer>
+				<key>relatedAppsMode</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.hotkey</string>
+			<key>uid</key>
+			<string>F430998B-F7F1-4360-9E3F-B09A2F665025</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
 		<dict>
 			<key>config</key>
 			<dict>
@@ -322,6 +360,11 @@
 			<real>10</real>
 		</dict>
 		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
+		<dict>
+			<key>ypos</key>
+			<real>10</real>
+		</dict>
+		<key>F430998B-F7F1-4360-9E3F-B09A2F665025</key>
 		<dict>
 			<key>ypos</key>
 			<real>10</real>

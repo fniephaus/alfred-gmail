@@ -1,8 +1,7 @@
-import datetime
 import sys
+import json
 from gmail_refresh import refresh_cache
 from workflow import Workflow, PasswordNotFound, MATCH_SUBSTRING
-from workflow.background import run_in_background, is_running
 
 
 def main(wf):
@@ -29,7 +28,12 @@ def main(wf):
                 else:
                     title = '- %s' % title
                 subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
-                arg = '%s %s' % (item['threadId'], item['id'])
+
+                arg = json.dumps({
+                    'thread_id': item['threadId'],
+                    'message_id': item['id'],
+                    'query': query
+                })
 
                 title = title.decode('utf-8', 'ignore')
                 subtitle = subtitle.decode('utf-8', 'ignore')
@@ -40,17 +44,7 @@ def main(wf):
         wf.add_item("Could receive your emails.",
                     "Please try again or file a bug report!", valid=False)
 
-    # Update list in background
-    if not wf.cached_data_fresh('gmail_list', max_age=30):
-        background_refresh(wf)
-
     wf.send_feedback()
-
-
-def background_refresh(wf):
-    if not is_running('gmail_refresh'):
-        cmd = ['/usr/bin/python', wf.workflowfile('gmail_refresh.py')]
-        run_in_background('gmail_refresh', cmd)
 
 
 if __name__ == '__main__':
