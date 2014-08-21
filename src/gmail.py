@@ -29,11 +29,12 @@ def main(wf):
             valid = len(message) > 0
             subtitle = "Hit enter to send reply" if valid else "Start typing your reply"
             arg = json.dumps({
-                'action': 'reply',
                 'thread_id': thread_id,
+                'message_id': None,
+                'action': 'reply',
                 'message': message
             })
-            wf.add_item(message, subtitle, arg=arg valid=valid)
+            wf.add_item(message, subtitle, arg=arg, valid=valid)
         elif len(thread_query) > 1 and 'label' in thread_query[1]:
             label_list = wf.cached_data('gmail_labels')
             if label_list:
@@ -42,21 +43,47 @@ def main(wf):
                         if ' '.join(thread_query[2:]).lower() in label.lower()]
                 if len(label_list):
                     for label in label_list:
-                        wf.add_item(label, "Hit enter to add this label", valid=True)
+                        arg = json.dumps({
+                            'thread_id': thread_id,
+                            'message_id': None,
+                            'action': 'label',
+                            'label': label
+                        })
+                        wf.add_item(label, "Hit enter to add this label", arg=arg, valid=True)
                 else:
                     wf.add_item("No label found", "Please try again!", valid=False)
             else:
                 wf.add_item("Could not fetch labels", "Please try again or file a bug report!", valid=False)
         else:
+            wf.add_item("Mark As Read", "", arg=json.dumps({
+                    'thread_id': thread_id,
+                    'message_id': None,
+                    'action': 'mark_as_read',
+                    'query': query,
+                }), valid=True)
+            wf.add_item("Archive", "", arg=json.dumps({
+                    'thread_id': thread_id,
+                    'message_id': None,
+                    'action': 'archive_conversation',
+                }), valid=True)
+            wf.add_item("Move To Trash", "", arg=json.dumps({
+                    'thread_id': thread_id,
+                    'message_id': None,
+                    'action': 'trash_conversation',
+                }), valid=True)
+            
             wf.add_item("Quick Reply", "", autocomplete='%s reply ' % query, valid=False)
             wf.add_item("Add label", "", autocomplete='%s label ' % query, valid=False)
+            # wf.add_item("Show Inbox", "", autocomplete=' ', valid=False)
 
         wf.send_feedback()
         return 0
 
     if not wf.cached_data_fresh('gmail_list', max_age=3600):
         refresh_cache()
-    item_list = wf.cached_data('gmail_list')
+    item_list = wf.cached_data('gmail_list', max_age=0)
+
+    wf.logger.debug(item_list)
 
     if item_list:
         if len(item_list) == 0:
@@ -72,18 +99,13 @@ def main(wf):
                 else:
                     title = '- %s' % title
                 subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
-
-                arg = json.dumps({
-                    'thread_id': item['threadId'],
-                    'message_id': item['id'],
-                    'query': query
-                })
+                autocomplete = '%s%s' % (THREAD_DELIMITER, item['threadId'])
 
                 title = title.decode('utf-8', 'ignore')
                 subtitle = subtitle.decode('utf-8', 'ignore')
 
                 if not query or query.lower() in ' '.join([title, subtitle]).lower():
-                    wf.add_item(title, subtitle, arg=arg, valid=True)
+                    wf.add_item(title, subtitle, autocomplete=autocomplete, valid=False)
     else:
         wf.add_item("Could receive your emails.",
                     "Please try again or file a bug report!", valid=False)

@@ -99,7 +99,8 @@ def refresh_cache():
         gmail_service = build('gmail', 'v1', http=http)
 
         wf.cache_data('gmail_list', get_list(wf, http, gmail_service))
-        wf.cache_data('gmail_labels', get_labels(wf, gmail_service))
+        if not wf.cached_data_fresh('gmail_labels', max_age=300):
+            wf.cache_data('gmail_labels', get_labels(wf, gmail_service))
 
     except PasswordNotFound:
         wf.logger.debug('Credentials not found')

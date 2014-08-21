@@ -16,49 +16,28 @@ import config
 
 
 def execute(wf):
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--mark-as-read', dest='mark_as_read', action='store_true', default=None)
-    parser.add_argument(
-        '--archive-conversation', dest='archive_conversation', action='store_true', default=None)
-    parser.add_argument(
-        '--trash-mail', dest='trash_message', action='store_true', default=None)
-    parser.add_argument(
-        '--trash-conversation', dest='trash_conversation', action='store_true', default=None)
-    parser.add_argument(
-        '--more', dest='more', action='store_true', default=None)
-    parser.add_argument(
-        '--deauthorize', dest='deauthorize', action='store_true', default=None)
-    parser.add_argument('query', nargs='?', default=None)
-    args = parser.parse_args(wf.args)
+    if len(wf.args):
+        query = json.loads(wf.args[0])
 
-    # Start the OAuth flow to retrieve credentials
-    flow = flow_from_clientsecrets(
-        config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
-    http = httplib2.Http()
+        # Start the OAuth flow to retrieve credentials
+        flow = flow_from_clientsecrets(
+            config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
+        http = httplib2.Http()
 
-    try:
-        credentials = OAuth2Credentials.from_json(
-            wf.get_password('gmail_credentials'))
-        if credentials is None or credentials.invalid:
-            credentials = run(flow, PseudoStorage(), http=http)
-            wf.save_password('gmail_credentials', credentials.to_json())
+        try:
+            credentials = OAuth2Credentials.from_json(
+                wf.get_password('gmail_credentials'))
+            if credentials is None or credentials.invalid:
+                credentials = run(flow, PseudoStorage(), http=http)
+                wf.save_password('gmail_credentials', credentials.to_json())
 
-        # Authorize the httplib2.Http object with our credentials
-        http = credentials.authorize(http)
-        # Build the Gmail service from discovery
-        service = build('gmail', 'v1', http=http)
-    except PasswordNotFound:
-        wf.logger.error('Credentials not found')
+            # Authorize the httplib2.Http object with our credentials
+            http = credentials.authorize(http)
+            # Build the Gmail service from discovery
+            service = build('gmail', 'v1', http=http)
+        except PasswordNotFound:
+            wf.logger.error('Credentials not found')
 
-    if args.query is not None:
-
-        if args.deauthorize:
-            wf.delete_password('gmail_credentials')
-            print "Workflow deauthorized."
-            return 0
-
-        query = json.loads(args.query)
         try:
             thread_id = query['thread_id']
             message_id = query['message_id']
@@ -66,18 +45,30 @@ def execute(wf):
             return 0
 
         target = None
-        if args.mark_as_read:
-            print mark_conversation_as_read(thread_id, service)
-            target = query['query']
-        elif args.archive_conversation:
-            print archive_conversation(thread_id, service)
-        elif args.trash_message:
-            print trash_message(message_id, service)
-        elif args.trash_conversation:
-            print trash_conversation(thread_id, service)
-        elif args.more:
-            open_alfred('thread:%s' % thread_id)
-            return 0
+        if 'action' in query:
+            if query['action'] == 'deauthorize':
+                wf.delete_password('gmail_credentials')
+                print "Workflow deauthorized."
+                return 0
+            elif query['action'] == 'mark_as_read':
+                print mark_conversation_as_read(thread_id, service)
+                target = query['query']
+            elif query['action'] == 'archive_conversation':
+                print archive_conversation(thread_id, service)
+            elif query['action'] == 'trash_message':
+                print trash_message(message_id, service)
+            elif query['action'] == 'trash_conversation':
+                print trash_conversation(thread_id, service)
+            elif query['action'] == 'reply':
+                if 'message' in query:
+                    print send_reply(thread_id, query['message'])
+                else:
+                    print 'No message found.'
+            elif query['action'] == 'label':
+                if 'label' in query:
+                    print add_label(thread_id, query['label'])
+                else:
+                    print 'No label found.'
         else:
             open_message(wf, message_id)
             refresh_cache()
@@ -138,6 +129,22 @@ def trash_conversation(thread_id, service):
 
         if all(u'labelIds' in message and u'TRASH' in message['labelIds'] for message in thread['messages']):
             return 'Conversation moved to trash.'
+        else:
+            return 'An error occurred.'
+    except Exception:
+        return 'Connection error'
+
+
+def send_reply(thread_id, message):
+    pass
+
+
+def add_label(thread_id, label):
+    try:
+        thread = service.users().threads().modify(
+            userId='me', id=thread_id, body={'addLabelIds': [label]}).execute()
+        if all(u'labelIds' in message and label in message['labelIds'] for message in thread['messages']):
+            return 'Conversation labeled with %s.' % label
         else:
             return 'An error occurred.'
     except Exception:
