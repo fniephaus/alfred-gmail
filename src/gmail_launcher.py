@@ -30,7 +30,6 @@ def execute(wf):
             if credentials is None or credentials.invalid:
                 credentials = run(flow, PseudoStorage(), http=http)
                 wf.save_password('gmail_credentials', credentials.to_json())
-
             # Authorize the httplib2.Http object with our credentials
             http = credentials.authorize(http)
             # Build the Gmail service from discovery
@@ -156,6 +155,7 @@ def open_alfred(query=None):
     os.system(
         """ osascript -e 'tell application "Alfred 2" to search "gmail %s"' """ %
         query)
+
 
 if __name__ == '__main__':
     wf = Workflow()

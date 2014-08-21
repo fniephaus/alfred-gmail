@@ -8,6 +8,9 @@ from workflow.background import run_in_background, is_running
 THREAD_DELIMITER = 'thread:'
 
 def main(wf):
+    if wf.update_available:
+        wf.add_item("An update is available!", "Hit enter to upgrade.", autocomplete='workflow:update', valid=False)
+
     if len(wf.args):
         query = wf.args[0]
     else:
@@ -124,5 +127,8 @@ def background_refresh(wf):
 
 
 if __name__ == '__main__':
-    wf = Workflow()
+    wf = Workflow(update_info={
+        'github_slug': 'fniephaus/alfred-gmail',
+        'version': 'v0.2',
+    })
     sys.exit(wf.run(main))
