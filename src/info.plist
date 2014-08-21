@@ -95,7 +95,7 @@
 				<key>modifiers</key>
 				<integer>524288</integer>
 				<key>modifiersubtext</key>
-				<string>Move Message To Trash</string>
+				<string>Move Entire Conversation To Trash</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -103,7 +103,7 @@
 				<key>modifiers</key>
 				<integer>1048576</integer>
 				<key>modifiersubtext</key>
-				<string>Move Conversation To Trash</string>
+				<string>More Options</string>
 			</dict>
 			<dict>
 				<key>destinationuid</key>
@@ -274,7 +274,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
-				<string>python gmail_launcher.py --trash-message "{query}"</string>
+				<string>python gmail_launcher.py --trash-conversation "{query}"</string>
 				<key>type</key>
 				<integer>0</integer>
 			</dict>
@@ -291,7 +291,7 @@
 				<key>escaping</key>
 				<integer>102</integer>
 				<key>script</key>
-				<string>python gmail_launcher.py --trash-conversation "{query}"</string>
+				<string>python gmail_launcher.py --more "{query}"</string>
 				<key>type</key>
 				<integer>0</integer>
 			</dict>

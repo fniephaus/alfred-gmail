@@ -69,6 +69,15 @@ def get_list(wf, http, service):
     return EMAIL_LIST
 
 
+def get_labels(wf, service):
+    try:
+        response = service.users().labels().list(userId='me').execute()
+        return [label['name'] for label in response['labels']]
+    except errors.HttpError, error:
+        wf.logger.debug('An error occurred: %s' % error)
+        return []
+
+
 def refresh_cache():
     wf = Workflow()
     # Start the OAuth flow to retrieve credentials
@@ -90,6 +99,7 @@ def refresh_cache():
         gmail_service = build('gmail', 'v1', http=http)
 
         wf.cache_data('gmail_list', get_list(wf, http, gmail_service))
+        wf.cache_data('gmail_labels', get_labels(wf, gmail_service))
 
     except PasswordNotFound:
         wf.logger.debug('Credentials not found')

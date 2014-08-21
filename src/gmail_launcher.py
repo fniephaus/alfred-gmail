@@ -26,6 +26,8 @@ def execute(wf):
     parser.add_argument(
         '--trash-conversation', dest='trash_conversation', action='store_true', default=None)
     parser.add_argument(
+        '--more', dest='more', action='store_true', default=None)
+    parser.add_argument(
         '--deauthorize', dest='deauthorize', action='store_true', default=None)
     parser.add_argument('query', nargs='?', default=None)
     args = parser.parse_args(wf.args)
@@ -73,6 +75,9 @@ def execute(wf):
             print trash_message(message_id, service)
         elif args.trash_conversation:
             print trash_conversation(thread_id, service)
+        elif args.more:
+            open_alfred('thread:%s' % thread_id)
+            return 0
         else:
             open_message(wf, message_id)
             refresh_cache()
