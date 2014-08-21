@@ -39,11 +39,11 @@ def main(wf):
             })
             wf.add_item(message, subtitle, arg=arg, valid=valid)
         elif len(thread_query) > 1 and 'label' in thread_query[1]:
-            label_list = wf.cached_data('gmail_labels')
+            label_list = wf.cached_data('gmail_labels', max_age=0)
             if label_list:
                 if len(thread_query) > 2:
                     label_list = [label for label in label_list
-                        if ' '.join(thread_query[2:]).lower() in label.lower()]
+                        if ' '.join(thread_query[2:]).lower() in label['name'].lower()]
                 if len(label_list):
                     for label in label_list:
                         arg = json.dumps({
@@ -52,7 +52,7 @@ def main(wf):
                             'action': 'label',
                             'label': label
                         })
-                        wf.add_item(label, "Hit enter to add this label", arg=arg, valid=True)
+                        wf.add_item(label['name'], "Hit enter to add this label", arg=arg, valid=True)
                 else:
                     wf.add_item("No label found", "Please try again!", valid=False)
             else:

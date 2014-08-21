@@ -36,6 +36,7 @@ def execute(wf):
             service = build('gmail', 'v1', http=http)
         except PasswordNotFound:
             wf.logger.error('Credentials not found')
+            return 0
 
         try:
             thread_id = query['thread_id']
@@ -50,14 +51,14 @@ def execute(wf):
                 print "Workflow deauthorized."
                 return 0
             elif query['action'] == 'mark_as_read':
-                print mark_conversation_as_read(thread_id, service)
+                print mark_conversation_as_read(service, thread_id)
                 target = query['query']
             elif query['action'] == 'archive_conversation':
-                print archive_conversation(thread_id, service)
+                print archive_conversation(service, thread_id)
             elif query['action'] == 'trash_message':
-                print trash_message(message_id, service)
+                print trash_message(service, message_id)
             elif query['action'] == 'trash_conversation':
-                print trash_conversation(thread_id, service)
+                print trash_conversation(service, thread_id)
             elif query['action'] == 'reply':
                 if 'message' in query:
                     print send_reply(thread_id, query['message'])
@@ -65,7 +66,7 @@ def execute(wf):
                     print 'No message found.'
             elif query['action'] == 'label':
                 if 'label' in query:
-                    print add_label(thread_id, query['label'])
+                    print add_label(service, thread_id, query['label'])
                 else:
                     print 'No label found.'
         else:
@@ -81,7 +82,7 @@ def open_message(wf, message_id):
     subprocess.call(['open', url])
 
 
-def mark_conversation_as_read(thread_id, service):
+def mark_conversation_as_read(service, thread_id):
     try:
         # Archive conversation
         thread = service.users().threads().modify(
@@ -94,7 +95,7 @@ def mark_conversation_as_read(thread_id, service):
         return 'Connection error'
 
 
-def archive_conversation(thread_id, service):
+def archive_conversation(service, thread_id):
     try:
         # Archive conversation
         thread = service.users().threads().modify(
@@ -107,7 +108,7 @@ def archive_conversation(thread_id, service):
         return 'Connection error'
 
 
-def trash_message(message_id, service):
+def trash_message(service, message_id):
     try:
         # Trash message
         message = service.users().messages().trash(
@@ -120,7 +121,7 @@ def trash_message(message_id, service):
         return 'Connection error'
 
 
-def trash_conversation(thread_id, service):
+def trash_conversation(service, thread_id):
     try:
         # Trash conversation
         thread = service.users().threads().trash(
@@ -138,15 +139,15 @@ def send_reply(thread_id, message):
     pass
 
 
-def add_label(thread_id, label):
+def add_label(service, thread_id, label):
     try:
         thread = service.users().threads().modify(
-            userId='me', id=thread_id, body={'addLabelIds': [label]}).execute()
-        if all(u'labelIds' in message and label in message['labelIds'] for message in thread['messages']):
-            return 'Conversation labeled with %s.' % label
+            userId='me', id=thread_id, body={'addLabelIds': [label['id']]}).execute()
+        if all(u'labelIds' in message and label['id'] in message['labelIds'] for message in thread['messages']):
+            return 'Labeled with %s.' % label['name']
         else:
             return 'An error occurred.'
-    except Exception:
+    except KeyError:
         return 'Connection error'
 
 

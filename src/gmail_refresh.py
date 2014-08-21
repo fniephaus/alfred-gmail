@@ -72,7 +72,7 @@ def get_list(wf, http, service):
 def get_labels(wf, service):
     try:
         response = service.users().labels().list(userId='me').execute()
-        return [label['name'] for label in response['labels']]
+        return response['labels']
     except errors.HttpError, error:
         wf.logger.debug('An error occurred: %s' % error)
         return []
