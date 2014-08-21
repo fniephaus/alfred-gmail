@@ -40,59 +40,80 @@ def execute(wf):
 
         try:
             thread_id = query['thread_id']
-            message_id = query['message_id']
         except KeyError:
             return 0
+        message_id = query.get('message_id')
 
         target = None
         if 'action' in query:
             if query['action'] == 'deauthorize':
                 wf.delete_password('gmail_credentials')
+                wf.clear_cache()
                 print "Workflow deauthorized."
                 return 0
             elif query['action'] == 'mark_as_read':
-                print mark_conversation_as_read(service, thread_id)
+                mark_conversation_as_read(service, thread_id)
+                target = query['query']
+            elif query['action'] == 'mark_as_unread':
+                mark_conversation_as_unread(service, thread_id)
                 target = query['query']
             elif query['action'] == 'archive_conversation':
-                print archive_conversation(service, thread_id)
+                refresh_cache(archive_conversation(service, thread_id))
             elif query['action'] == 'trash_message':
-                print trash_message(service, message_id)
+                refresh_cache(trash_message(service, message_id))
             elif query['action'] == 'trash_conversation':
-                print trash_conversation(service, thread_id)
+                refresh_cache(trash_conversation(service, thread_id))
             elif query['action'] == 'reply':
                 if 'message' in query:
-                    print send_reply(thread_id, query['message'])
+                    refresh_cache(send_reply(thread_id, query['message']))
                 else:
                     print 'No message found.'
             elif query['action'] == 'label':
                 if 'label' in query:
-                    print add_label(service, thread_id, query['label'])
+                    refresh_cache(add_label(service, thread_id, query['label']))
                 else:
                     print 'No label found.'
         else:
             open_message(wf, message_id)
-            refresh_cache()
+            refresh_cache(label_id)
             return 0
-        refresh_cache()
         open_alfred(target)
 
 
 def open_message(wf, message_id):
-    url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
-    subprocess.call(['open', url])
+    if message_id:
+        url = 'https://mail.google.com/mail/u/0/?ui=2&pli=1#inbox/%s' % message_id
+        subprocess.call(['open', url])
 
 
 def mark_conversation_as_read(service, thread_id):
     try:
-        # Archive conversation
+        # Mark conversation as read
         thread = service.users().threads().modify(
             userId='me', id=thread_id, body={'removeLabelIds': ['UNREAD']}).execute()
         if all(u'labelIds' in message and u'UNREAD' not in message['labelIds'] for message in thread['messages']):
-            return 'Conversation marked as read.'
+            print 'Conversation marked as read.'
+            return thread['messages'][-1]['labelIds']
         else:
-            return 'An error occurred.'
-    except Exception:
-        return 'Connection error'
+            print 'An error occurred.'
+    except KeyError:
+        print 'Connection error'
+    return []
+
+
+def mark_conversation_as_unread(service, thread_id):
+    try:
+        # Mark conversation as unread
+        thread = service.users().threads().modify(
+            userId='me', id=thread_id, body={'addLabelIds': ['UNREAD']}).execute()
+        if all(u'labelIds' in message and u'UNREAD' in message['labelIds'] for message in thread['messages']):
+            print 'Conversation marked as unread.'
+            return thread['messages'][-1]['labelIds']
+        else:
+            print 'An error occurred.'
+    except KeyError:
+        print 'Connection error'
+    return []
 
 
 def archive_conversation(service, thread_id):
@@ -101,24 +122,29 @@ def archive_conversation(service, thread_id):
         thread = service.users().threads().modify(
             userId='me', id=thread_id, body={'removeLabelIds': ['INBOX']}).execute()
         if all(u'labelIds' in message and u'INBOX' not in message['labelIds'] for message in thread['messages']):
-            return 'Conversation archived.'
+            print 'Conversation archived.'
+            return thread['messages'][-1]['labelIds']
         else:
-            return 'An error occurred.'
+            print 'An error occurred.'
     except Exception:
-        return 'Connection error'
+        print 'Connection error'
+    return []
 
 
 def trash_message(service, message_id):
-    try:
-        # Trash message
-        message = service.users().messages().trash(
-            userId='me', id=message_id).execute()
-        if u'labelIds' in message and u'TRASH' in message['labelIds']:
-            return 'Mail moved to trash.'
-        else:
-            return 'An error occurred.'
-    except Exception:
-        return 'Connection error'
+    if message_id:
+        try:
+            # Trash message
+            message = service.users().messages().trash(
+                userId='me', id=message_id).execute()
+            if u'labelIds' in message and u'TRASH' in message['labelIds']:
+                print 'Mail moved to trash.'
+                return thread['messages'][-1]['labelIds']
+            else:
+                print 'An error occurred.'
+        except Exception:
+            print 'Connection error'
+    return []
 
 
 def trash_conversation(service, thread_id):
@@ -128,11 +154,13 @@ def trash_conversation(service, thread_id):
             userId='me', id=thread_id).execute()
 
         if all(u'labelIds' in message and u'TRASH' in message['labelIds'] for message in thread['messages']):
-            return 'Conversation moved to trash.'
+            print 'Conversation moved to trash.'
+            return thread['messages'][-1]['labelIds']
         else:
-            return 'An error occurred.'
+            print 'An error occurred.'
     except Exception:
-        return 'Connection error'
+        print 'Connection error'
+    return []
 
 
 def send_reply(thread_id, message):
@@ -144,11 +172,13 @@ def add_label(service, thread_id, label):
         thread = service.users().threads().modify(
             userId='me', id=thread_id, body={'addLabelIds': [label['id']]}).execute()
         if all(u'labelIds' in message and label['id'] in message['labelIds'] for message in thread['messages']):
-            return 'Labeled with %s.' % label['name']
+            print 'Labeled with %s.' % label['name']
+            return thread['messages'][-1]['labelIds']
         else:
-            return 'An error occurred.'
+            print 'An error occurred.'
     except KeyError:
-        return 'Connection error'
+        print 'Connection error'
+    return []
 
 
 def open_alfred(query=None):

@@ -4,12 +4,15 @@ from gmail_refresh import refresh_cache
 from workflow import Workflow, PasswordNotFound, MATCH_SUBSTRING
 from workflow.background import run_in_background, is_running
 
+import config
 
-THREAD_DELIMITER = 'thread:'
+THREAD_DELIMITER = 't:'
+
 
 def main(wf):
     if wf.update_available:
-        wf.add_item("An update is available!", "Hit enter to upgrade.", autocomplete='workflow:update', valid=False)
+        wf.add_item("An update is available!", "Hit enter to upgrade.",
+                    autocomplete='workflow:update', valid=False)
 
     if len(wf.args):
         query = wf.args[0]
@@ -17,7 +20,8 @@ def main(wf):
         query = None
 
     if query and THREAD_DELIMITER in query:
-        thread_query = query[query.find(THREAD_DELIMITER) + len(THREAD_DELIMITER):].split()
+        thread_query = query[
+            query.find(THREAD_DELIMITER) + len(THREAD_DELIMITER):].split()
         thread_id = thread_query[0]
 
         if len(thread_id) < 4:
@@ -43,7 +47,7 @@ def main(wf):
             if label_list:
                 if len(thread_query) > 2:
                     label_list = [label for label in label_list
-                        if ' '.join(thread_query[2:]).lower() in label['name'].lower()]
+                                  if ' '.join(thread_query[2:]).lower() in label['name'].lower()]
                 if len(label_list):
                     for label in label_list:
                         arg = json.dumps({
@@ -52,67 +56,85 @@ def main(wf):
                             'action': 'label',
                             'label': label
                         })
-                        wf.add_item(label['name'], "Hit enter to add this label", arg=arg, valid=True)
+                        wf.add_item(
+                            label['name'], "Hit enter to add this label", arg=arg, valid=True)
                 else:
-                    wf.add_item("No label found", "Please try again!", valid=False)
+                    wf.add_item(
+                        "No label found", "Please try again!", valid=False)
             else:
-                wf.add_item("Could not fetch labels", "Please try again or file a bug report!", valid=False)
+                wf.add_item(
+                    "Could not fetch labels", "Please try again or file a bug report!", valid=False)
         else:
             wf.add_item("Mark As Read", "", arg=json.dumps({
-                    'thread_id': thread_id,
-                    'message_id': None,
-                    'action': 'mark_as_read',
-                    'query': query,
-                }), valid=True)
+                'thread_id': thread_id,
+                'action': 'mark_as_read',
+                'query': query,
+            }), valid=True)
             wf.add_item("Archive", "", arg=json.dumps({
-                    'thread_id': thread_id,
-                    'message_id': None,
-                    'action': 'archive_conversation',
-                }), valid=True)
+                'thread_id': thread_id,
+                'action': 'archive_conversation',
+            }), valid=True)
             wf.add_item("Move To Trash", "", arg=json.dumps({
-                    'thread_id': thread_id,
-                    'message_id': None,
-                    'action': 'trash_conversation',
-                }), valid=True)
-            
-            wf.add_item("Quick Reply", "", autocomplete='%s reply ' % query, valid=False)
-            wf.add_item("Add label", "", autocomplete='%s label ' % query, valid=False)
+                'thread_id': thread_id,
+                'action': 'trash_conversation',
+            }), valid=True)
+            wf.add_item("Mark As Unread", "", arg=json.dumps({
+                'thread_id': thread_id,
+                'action': 'mark_as_unread',
+                'query': query,
+            }), valid=True)
+
+            wf.add_item("Quick Reply", "", autocomplete='%s reply ' %
+                        query, valid=False)
+            wf.add_item("Add label", "", autocomplete='%s label ' %
+                        query, valid=False)
             # wf.add_item("Show Inbox", "", autocomplete=' ', valid=False)
 
         wf.send_feedback()
         return 0
 
-    if not wf.cached_data_fresh('gmail_list', max_age=3600):
-        refresh_cache()
-    item_list = wf.cached_data('gmail_list', max_age=0)
+    if query and any(query.startswith(label) for label in config.SYSTEM_LABELS):
+        query = query.split()
+        label = query[0]
+        label_query = ' '.join(query[1:]) if len(query) > 0 else ''
+        if not wf.cached_data_fresh('gmail_%s' % label.lower(), max_age=3600):
+            refresh_cache(label)
+        item_list = wf.cached_data('gmail_%s' % label.lower(), max_age=0)
+        wf.logger.debug(item_list)
 
-    wf.logger.debug(item_list)
+        if item_list is not None:
+            if len(item_list) == 0:
+                wf.add_item('Your Gmail inbox is empty!', valid=False)
+            else:
+                for index, item in enumerate(item_list):
+                    name = item['From'][
+                        :item['From'].find("<") - 1].replace('"', '')
+                    title = '%s (%s): %s' % (
+                        name, item['messages_count'], item['Subject'])
+                    if item['unread']:
+                        title = '+ %s' % title
+                    else:
+                        title = '- %s' % title
+                    subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
+                    autocomplete = '%s%s' % (
+                        THREAD_DELIMITER, item['threadId'])
 
-    if item_list:
-        if len(item_list) == 0:
-            wf.add_item('Your Gmail inbox is empty!', valid=False)
+                    title = title.decode('utf-8', 'ignore')
+                    subtitle = subtitle.decode('utf-8', 'ignore')
+
+                    if label_query.lower() in ' '.join([title, subtitle]).lower():
+                        wf.add_item(
+                            title, subtitle, autocomplete=autocomplete, valid=False)
         else:
-            for index, item in enumerate(item_list):
-                name = item['From'][
-                    :item['From'].find("<") - 1].replace('"', '')
-                title = '%s (%s): %s' % (
-                    name, item['messages_count'], item['Subject'])
-                if item['unread']:
-                    title = '+ %s' % title
-                else:
-                    title = '- %s' % title
-                subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
-                autocomplete = '%s%s' % (THREAD_DELIMITER, item['threadId'])
+            wf.add_item("Could receive your emails.",
+                        "Please try again or file a bug report!", valid=False)
 
-                title = title.decode('utf-8', 'ignore')
-                subtitle = subtitle.decode('utf-8', 'ignore')
+        wf.send_feedback()
+        return 0
 
-                if not query or query.lower() in ' '.join([title, subtitle]).lower():
-                    wf.add_item(title, subtitle, autocomplete=autocomplete, valid=False)
-    else:
-        wf.add_item("Could receive your emails.",
-                    "Please try again or file a bug report!", valid=False)
-    
+    for label, name in config.SYSTEM_LABELS.iteritems():
+        wf.add_item(name, autocomplete='%s ' % label, valid=False)
+
     # Update list in background
     if not wf.cached_data_fresh('gmail_list', max_age=30):
         background_refresh(wf)

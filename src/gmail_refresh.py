@@ -1,4 +1,5 @@
 import httplib2
+import time
 
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
@@ -9,7 +10,7 @@ from workflow import Workflow, PasswordNotFound
 
 import config
 
-EMAIL_LIST = []
+EMAIL_LIST = dict((x,[]) for x in config.SYSTEM_LABELS.keys())
 
 
 class PseudoStorage():
@@ -18,7 +19,7 @@ class PseudoStorage():
         pass
 
 
-def list_threads(request_id, response, exception):
+def list_threads(label, request_id, response, exception):
     if exception is None:
         thread = {
             'Date': None,
@@ -31,42 +32,48 @@ def list_threads(request_id, response, exception):
             'unread': None,
         }
         if 'messages' in response and len(response['messages']) > 0:
-            if 'id' in response['messages'][-1]:
-                thread['id'] = response['messages'][-1]['id']
+            latest_message = response['messages'][-1]
+            if 'id' in latest_message:
+                thread['id'] = latest_message['id']
 
-            if 'threadId' in response['messages'][-1]:
-                thread['threadId'] = response['messages'][-1]['threadId']
+            if 'threadId' in latest_message:
+                thread['threadId'] = latest_message['threadId']
 
-            if 'snippet' in response['messages'][-1]:
+            if 'snippet' in latest_message:
                 thread['snippet'] = response[
                     'messages'][-1]['snippet'].encode('utf-8')
 
-            for header in response['messages'][-1]['payload']['headers']:
+            for header in latest_message['payload']['headers']:
                 if header['name'] in thread:
                     thread[header['name']] = header[
                         'value'].encode('utf-8')
 
             thread['messages_count'] = len(response['messages'])
-            thread['unread'] = 'UNREAD' in response['messages'][-1]['labelIds']
+            thread['unread'] = 'UNREAD' in latest_message['labelIds']
 
-        EMAIL_LIST.append(thread)
+            if label in config.SYSTEM_LABELS:
+                EMAIL_LIST[label].append(thread)
 
 
-def get_list(wf, http, service):
-    # Retrieve a page of threads
-    threads = service.users().threads().list(
-        userId='me', labelIds=['INBOX'], maxResults=100).execute()
+def get_list(wf, http, service, label):
+    if label in config.SYSTEM_LABELS.keys():
+        # Retrieve a page of threads
+        threads = service.users().threads().list(
+            userId='me', labelIds=[label.upper()], maxResults=100).execute()
 
-    batch = BatchHttpRequest()
-    if 'threads' in threads and len(threads['threads']) > 0:
-        fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
-        for thread in threads['threads']:
-            batch.add(service.users().threads().get(
-                userId='me', id=thread['id'], fields=fields), callback=list_threads)
+        batch = BatchHttpRequest()
+        if 'threads' in threads and len(threads['threads']) > 0:
+            fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
+            def wrapper(request_id, response, exception):
+                list_threads(label, request_id, response, exception)
 
-        batch.execute(http=http)
+            for thread in threads['threads']:
+                batch.add(service.users().threads().get(
+                    userId='me', id=thread['id'], fields=fields), callback=wrapper)
 
-    return EMAIL_LIST
+            batch.execute(http=http)
+
+        return EMAIL_LIST[label]
 
 
 def get_labels(wf, service):
@@ -78,7 +85,8 @@ def get_labels(wf, service):
         return []
 
 
-def refresh_cache():
+def refresh_cache(labels=None):
+    labels = labels if labels is not None else config.SYSTEM_LABELS.keys()
     wf = Workflow()
     # Start the OAuth flow to retrieve credentials
     flow = flow_from_clientsecrets(
@@ -98,7 +106,10 @@ def refresh_cache():
         # Build the Gmail service from discovery
         gmail_service = build('gmail', 'v1', http=http)
 
-        wf.cache_data('gmail_list', get_list(wf, http, gmail_service))
+        for label in labels:
+            wf.logger.debug('hi', label)
+            wf.cache_data('gmail_%s' % label.lower(), get_list(wf, http, gmail_service, label))
+            time.sleep(2)
         if not wf.cached_data_fresh('gmail_labels', max_age=300):
             wf.cache_data('gmail_labels', get_labels(wf, gmail_service))
 
