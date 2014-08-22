@@ -20,6 +20,7 @@ def main(wf):
         query = None
 
     if query and THREAD_DELIMITER in query:
+        label = query.split()[0]
         thread_query = query[
             query.find(THREAD_DELIMITER) + len(THREAD_DELIMITER):].split()
         thread_id = thread_query[0]
@@ -74,10 +75,16 @@ def main(wf):
                 'thread_id': thread_id,
                 'action': 'archive_conversation',
             }), valid=True)
-            wf.add_item("Move To Trash", "", arg=json.dumps({
-                'thread_id': thread_id,
-                'action': 'trash_conversation',
-            }), valid=True)
+            if label != 'TRASH':
+                wf.add_item("Move To Trash", "", arg=json.dumps({
+                    'thread_id': thread_id,
+                    'action': 'trash_conversation',
+                }), valid=True)
+            if label != 'INBOX':
+                wf.add_item("Move To Inbox", "", arg=json.dumps({
+                    'thread_id': thread_id,
+                    'action': 'move_to_inbox',
+                }), valid=True)
             wf.add_item("Mark As Unread", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_unread',
@@ -104,7 +111,7 @@ def main(wf):
 
         if item_list is not None:
             if len(item_list) == 0:
-                wf.add_item('Your Gmail inbox is empty!', valid=False)
+                wf.add_item('No mails found!', valid=False)
             else:
                 for index, item in enumerate(item_list):
                     name = item['From'][
@@ -116,8 +123,7 @@ def main(wf):
                     else:
                         title = '- %s' % title
                     subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
-                    autocomplete = '%s%s' % (
-                        THREAD_DELIMITER, item['threadId'])
+                    autocomplete = '%s %s%s' % (label, THREAD_DELIMITER, item['threadId'])
 
                     title = title.decode('utf-8', 'ignore')
                     subtitle = subtitle.decode('utf-8', 'ignore')

@@ -61,6 +61,8 @@ def execute(wf):
                 refresh_cache(archive_conversation(service, thread_id))
             elif query['action'] == 'trash_message':
                 refresh_cache(trash_message(service, message_id))
+            elif query['action'] == 'move_to_inbox':
+                refresh_cache(move_to_inbox(service, message_id))
             elif query['action'] == 'trash_conversation':
                 refresh_cache(trash_conversation(service, thread_id))
             elif query['action'] == 'reply':
@@ -108,6 +110,20 @@ def mark_conversation_as_unread(service, thread_id):
             userId='me', id=thread_id, body={'addLabelIds': ['UNREAD']}).execute()
         if all(u'labelIds' in message and u'UNREAD' in message['labelIds'] for message in thread['messages']):
             print 'Conversation marked as unread.'
+            return thread['messages'][-1]['labelIds']
+        else:
+            print 'An error occurred.'
+    except KeyError:
+        print 'Connection error'
+    return []
+
+
+def move_to_inbox(service, thread_id):
+    try:
+        thread = service.users().threads().modify(
+            userId='me', id=thread_id, body={'addLabelIds': ['INBOX']}).execute()
+        if all(u'labelIds' in message and u'INBOX' in message['labelIds'] for message in thread['messages']):
+            print 'Conversation moved to inbox.'
             return thread['messages'][-1]['labelIds']
         else:
             print 'An error occurred.'
