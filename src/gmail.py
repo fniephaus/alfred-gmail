@@ -142,8 +142,8 @@ def main(wf):
         wf.add_item(name, autocomplete='%s ' % label, valid=False)
 
     # Update list in background
-    if not wf.cached_data_fresh('gmail_list', max_age=30):
-        background_refresh(wf)
+    # if not wf.cached_data_fresh('gmail_list', max_age=30):
+    #     background_refresh(wf)
 
     wf.send_feedback()
 

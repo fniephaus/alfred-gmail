@@ -4,8 +4,11 @@ import subprocess
 import sys
 import json
 import httplib2
+import base64
+from email.mime.text import MIMEText
 
 from apiclient.discovery import build
+from apiclient import errors
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
 from oauth2client.tools import run
 
@@ -67,12 +70,12 @@ def execute(wf):
                 refresh_cache(trash_conversation(service, thread_id))
             elif query['action'] == 'reply':
                 if 'message' in query:
-                    refresh_cache(send_reply(thread_id, query['message']))
+                    send_reply(wf, service, thread_id, query['message'])
                 else:
                     print 'No message found.'
             elif query['action'] == 'label':
                 if 'label' in query:
-                    refresh_cache(add_label(service, thread_id, query['label']))
+                    add_label(service, thread_id, query['label'])
                 else:
                     print 'No label found.'
         else:
@@ -179,8 +182,41 @@ def trash_conversation(service, thread_id):
     return []
 
 
-def send_reply(thread_id, message):
-    pass
+def send_reply(wf, service, thread_id, message):
+    try:
+        thread = service.users().threads().get(userId='me', id=thread_id, fields='messages/payload/headers,messages/labelIds').execute()
+        header_from = None
+        header_delivered_to = None
+        header_subject = None
+        for header in thread['messages'][-1]['payload']['headers']:
+            if header['name'] == 'From':
+                header_from = header['value']
+            if header['name'] == 'Delivered-To':
+                header_delivered_to = header['value']
+            if header['name'] == 'Subject':
+                header_subject = header['value']
+
+        if any(not x for x in [header_from, header_delivered_to, header_subject]):
+            print 'An error occurred.'
+            return []
+
+        message_body = create_message(header_delivered_to, header_from, header_subject, message)
+
+        message_response = (service.users().messages().send(userId='me', body=message_body)
+                   .execute())
+        print 'Reply sent.'
+        return thread['messages'][-1]['labelIds']
+    except errors.HttpError, error:
+        print 'An error occurred: %s' % error
+        return []
+
+
+def create_message(sender, to, subject, message_text):
+  message = MIMEText(message_text)
+  message['to'] = to
+  message['from'] = sender
+  message['subject'] = subject
+  return {'raw': base64.urlsafe_b64encode(message.as_string())}
 
 
 def add_label(service, thread_id, label):
