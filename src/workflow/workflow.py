@@ -831,12 +831,12 @@ class Workflow(object):
     # won't want to change this
     item_class = Item
 
-    def __init__(self, default_settings=None, update_info=None,
+    def __init__(self, default_settings=None, update_config=None,
                  input_encoding='utf-8', normalization='NFC',
                  capture_args=True, libraries=None):
 
         self._default_settings = default_settings or {}
-        self._update_info = update_info
+        self._update_config = update_config
         self._input_encoding = input_encoding
         self._normalizsation = normalization
         self._capture_args = capture_args
@@ -857,7 +857,7 @@ class Workflow(object):
         self._search_pattern_cache = {}
         if libraries:
             sys.path = libraries + sys.path
-        if update_info:
+        if update_config:
             self.check_update()
 
     ####################################################################
@@ -998,6 +998,20 @@ class Workflow(object):
         if update_data is None or 'available' not in update_data:
             return False
         return update_data['available']
+
+    @property
+    def update_info(self):
+        """Returns GitHub release information
+
+        :returns: GitHub release information if available, else ``None``
+        :rtype: ``dict``
+
+        """
+
+        update_data = self.cached_data('__workflow_update_available')
+        if update_data is None or 'release' not in update_data:
+            return None
+        return update_data['release']
 
     # Workflow utility methods -----------------------------------------
 
@@ -1931,12 +1945,12 @@ class Workflow(object):
     ####################################################################
 
     def check_update(self, force=False):
-        frequency = self._update_info.get('frequency', DEFAULT_FREQUENCY)
+        frequency = self._update_config.get('frequency', DEFAULT_FREQUENCY)
         if (force or
                 not self.cached_data_fresh(
                     '__workflow_update_available', frequency * 86400)):
-            github_slug = self._update_info['github_slug']
-            version = self._update_info['version']
+            github_slug = self._update_config['github_slug']
+            version = self._update_config['version']
             from background import run_in_background
             cmd = ['/usr/bin/python', self.workflowfile('workflow/update.py'),
                     github_slug, version]
@@ -1944,8 +1958,8 @@ class Workflow(object):
 
     def start_update(self):
         import update
-        github_slug = self._update_info['github_slug']
-        version = self._update_info['version']
+        github_slug = self._update_config['github_slug']
+        version = self._update_config['version']
         if not update._check_update(github_slug, version):
             return False
         update_data = self.cached_data('__workflow_update_available')

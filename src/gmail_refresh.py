@@ -88,7 +88,6 @@ def get_labels(wf, service):
 def refresh_cache(labels=None):
     labels = labels if labels is not None else config.SYSTEM_LABELS.keys()
     wf = Workflow()
-    # Start the OAuth flow to retrieve credentials
     flow = flow_from_clientsecrets(
         config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
     http = httplib2.Http()
@@ -101,13 +100,10 @@ def refresh_cache(labels=None):
             wf.save_password('gmail_credentials', credentials.to_json())
             wf.logger.debug('Credentials securely updated')
 
-        # Authorize the httplib2.Http object with our credentials
         http = credentials.authorize(http)
-        # Build the Gmail service from discovery
         gmail_service = build('gmail', 'v1', http=http)
 
         for label in labels:
-            wf.logger.debug('hi', label)
             wf.cache_data('gmail_%s' % label.lower(), get_list(wf, http, gmail_service, label))
             time.sleep(2)
         if not wf.cached_data_fresh('gmail_labels', max_age=300):

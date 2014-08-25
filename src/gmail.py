@@ -11,7 +11,8 @@ THREAD_DELIMITER = 't:'
 
 def main(wf):
     if wf.update_available:
-        wf.add_item("An update is available!", "Hit enter to upgrade.",
+        subtitle = 'New: %s' % wf.update_info['body']
+        wf.add_item("An update is available!", subtitle,
                     autocomplete='workflow:update', valid=False)
 
     if len(wf.args):
@@ -29,8 +30,6 @@ def main(wf):
             wf.add_item("Invalid Thread ID", valid=False)
             wf.send_feedback()
             return 0
-
-        wf.logger.debug(thread_query)
 
         if len(thread_query) > 1 and 'reply' in thread_query[1]:
             message = ' '.join(thread_query[2:])
@@ -107,7 +106,6 @@ def main(wf):
         if not wf.cached_data_fresh('gmail_%s' % label.lower(), max_age=3600):
             refresh_cache(label)
         item_list = wf.cached_data('gmail_%s' % label.lower(), max_age=0)
-        wf.logger.debug(item_list)
 
         if item_list is not None:
             if len(item_list) == 0:
@@ -155,7 +153,7 @@ def background_refresh(wf):
 
 
 if __name__ == '__main__':
-    wf = Workflow(update_info={
+    wf = Workflow(update_config={
         'github_slug': 'fniephaus/alfred-gmail',
         'version': 'v0.2',
     })

@@ -71,7 +71,8 @@ def _extract_info(releases):
     if 'tag_name' not in latest_release:
         raise KeyError('No version found')
     download_url = _extract_download_url(latest_release)
-    return (latest_release['tag_name'], download_url)
+    return (latest_release['tag_name'], download_url,
+        latest_release)
 
 def _extract_download_url(release):
     if ('assets' not in release or
@@ -82,16 +83,21 @@ def _extract_download_url(release):
 
 def _check_update(github_slug, current_version):
     releases = get(_get_api_url(github_slug)).json()
-    (latest_version, download_url) = _extract_info(releases)
+    (latest_version, download_url,
+        latest_release) = _extract_info(releases)
     if current_version == latest_version:
         wf.cache_data('__workflow_update_available', {
-            'available': False
+            'available': False,
+            'download_url': download_url,
+            'release': latest_release,
+            'version': latest_version,
         })
         return False
     wf.cache_data('__workflow_update_available', {
-        'version': latest_version,
+        'available': True,
         'download_url': download_url,
-        'available': True
+        'release': latest_release,
+        'version': latest_version,
     })
     return True
 
