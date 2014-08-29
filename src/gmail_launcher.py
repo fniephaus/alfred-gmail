@@ -56,32 +56,42 @@ def execute(wf):
                 return 0
             elif query['action'] == 'mark_as_read':
                 mark_conversation_as_read(service, thread_id)
-                target = query['query']
+                target = query.get('query')
             elif query['action'] == 'mark_as_unread':
                 mark_conversation_as_unread(service, thread_id)
-                target = query['query']
+                target = query.get('query')
             elif query['action'] == 'archive_conversation':
                 refresh_cache(archive_conversation(service, thread_id))
             elif query['action'] == 'trash_message':
                 refresh_cache(trash_message(service, message_id))
+                target = query.get('label')
             elif query['action'] == 'move_to_inbox':
                 refresh_cache(move_to_inbox(service, message_id))
+                target = query.get('label')
             elif query['action'] == 'trash_conversation':
                 refresh_cache(trash_conversation(service, thread_id))
+                target = query.get('label')
             elif query['action'] == 'reply':
                 if 'message' in query:
                     send_reply(wf, service, thread_id, query['message'])
                 else:
                     print 'No message found.'
+                target = query.get('query')
             elif query['action'] == 'label':
                 if 'label' in query:
                     add_label(service, thread_id, query['label'])
                 else:
                     print 'No label found.'
+                target = query.get('query')
+            elif query['action'] == 'open':
+                open_message(wf, thread_id)
+                if 'label_id' in query:
+                    refresh_cache([query['label_id']])
+                return 0
         else:
-            open_message(wf, message_id)
-            refresh_cache(label_id)
+            wf.logger.debug('No action defined')
             return 0
+
         open_alfred(target)
 
 

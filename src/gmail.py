@@ -24,6 +24,11 @@ def main(wf):
         label = query.split()[0]
         thread_query = query[
             query.find(THREAD_DELIMITER) + len(THREAD_DELIMITER):].split()
+        if len(thread_query) == 0:
+            wf.add_item("Missing Thread ID", valid=False)
+            wf.send_feedback()
+            return 0
+
         thread_id = thread_query[0]
         label_threads = wf.cached_data('gmail_%s' % label.lower(), max_age = 0)
         selected_thread = None
@@ -59,7 +64,8 @@ def main(wf):
                             'thread_id': thread_id,
                             'message_id': None,
                             'action': 'label',
-                            'label': label
+                            'label': label,
+                            'query': query,
                         })
                         wf.add_item(
                             label['name'], "Hit enter to add this label", arg=arg, valid=True)
@@ -72,26 +78,38 @@ def main(wf):
         else:
             email_title = selected_thread['Subject']
             email_snippet = selected_thread['snippet']
-            wf.add_item(email_title, email_snippet, valid=False)
+            wf.add_item(email_title, email_snippet, arg = json.dumps({
+                'thread_id': thread_id,
+                'action': 'open',
+                'label': label,
+            }), valid=True)
+
             wf.add_item("> Mark As Read", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_read',
                 'query': query,
             }), valid=True)
+
             wf.add_item("> Archive", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'archive_conversation',
+                'label': label,
             }), valid=True)
+
             if label != 'TRASH':
                 wf.add_item("> Move To Trash", "", arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'trash_conversation',
+                    'label': label,
                 }), valid=True)
+
             if label != 'INBOX':
                 wf.add_item("> Move To Inbox", "", arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'move_to_inbox',
+                    'label': label,
                 }), valid=True)
+
             wf.add_item("> Mark As Unread", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_unread',
@@ -163,6 +181,6 @@ def background_refresh(wf):
 if __name__ == '__main__':
     wf = Workflow(update_config={
         'github_slug': 'fniephaus/alfred-gmail',
-        'version': 'v0.4',
+        'version': 'v1.0 Beta',
     })
     sys.exit(wf.run(main))
