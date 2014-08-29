@@ -25,8 +25,13 @@ def main(wf):
         thread_query = query[
             query.find(THREAD_DELIMITER) + len(THREAD_DELIMITER):].split()
         thread_id = thread_query[0]
+        label_threads = wf.cached_data('gmail_%s' % label.lower(), max_age = 0)
+        selected_thread = None
+        for thread in label_threads:
+            if thread['threadId'] == thread_id:
+                selected_thread = thread
 
-        if len(thread_id) < 4:
+        if selected_thread is None:
             wf.add_item("Invalid Thread ID", valid=False)
             wf.send_feedback()
             return 0
@@ -65,34 +70,37 @@ def main(wf):
                 wf.add_item(
                     "Could not fetch labels", "Please try again or file a bug report!", valid=False)
         else:
-            wf.add_item("Mark As Read", "", arg=json.dumps({
+            email_title = selected_thread['Subject']
+            email_snippet = selected_thread['snippet']
+            wf.add_item(email_title, email_snippet, valid=False)
+            wf.add_item("> Mark As Read", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_read',
                 'query': query,
             }), valid=True)
-            wf.add_item("Archive", "", arg=json.dumps({
+            wf.add_item("> Archive", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'archive_conversation',
             }), valid=True)
             if label != 'TRASH':
-                wf.add_item("Move To Trash", "", arg=json.dumps({
+                wf.add_item("> Move To Trash", "", arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'trash_conversation',
                 }), valid=True)
             if label != 'INBOX':
-                wf.add_item("Move To Inbox", "", arg=json.dumps({
+                wf.add_item("> Move To Inbox", "", arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'move_to_inbox',
                 }), valid=True)
-            wf.add_item("Mark As Unread", "", arg=json.dumps({
+            wf.add_item("> Mark As Unread", "", arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_unread',
                 'query': query,
             }), valid=True)
 
-            wf.add_item("Quick Reply", "", autocomplete='%s reply ' %
+            wf.add_item("> Quick Reply", "", autocomplete='%s reply ' %
                         query, valid=False)
-            wf.add_item("Add label", "", autocomplete='%s label ' %
+            wf.add_item("> Add label", "", autocomplete='%s label ' %
                         query, valid=False)
             # wf.add_item("Show Inbox", "", autocomplete=' ', valid=False)
 
@@ -104,7 +112,7 @@ def main(wf):
         label = query[0]
         label_query = ' '.join(query[1:]) if len(query) > 0 else ''
         if not wf.cached_data_fresh('gmail_%s' % label.lower(), max_age=3600):
-            refresh_cache(label)
+            refresh_cache([label])
         item_list = wf.cached_data('gmail_%s' % label.lower(), max_age=0)
 
         if item_list is not None:
@@ -140,8 +148,8 @@ def main(wf):
         wf.add_item(name, autocomplete='%s ' % label, valid=False)
 
     # Update list in background
-    # if not wf.cached_data_fresh('gmail_list', max_age=30):
-    #     background_refresh(wf)
+    if not wf.cached_data_fresh('gmail_list', max_age=30):
+        background_refresh(wf)
 
     wf.send_feedback()
 
@@ -155,6 +163,6 @@ def background_refresh(wf):
 if __name__ == '__main__':
     wf = Workflow(update_config={
         'github_slug': 'fniephaus/alfred-gmail',
-        'version': 'v0.2',
+        'version': 'v0.4',
     })
     sys.exit(wf.run(main))
