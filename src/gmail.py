@@ -129,7 +129,7 @@ def main():
                         query, valid=False)
             WF.add_item(OPERATION_PREFIX + "Add label", "", autocomplete='%s label ' %
                         query, valid=False)
-            # WF.add_item("Show Inbox", "", autocomplete=' ', valid=False)
+            WF.add_item("...", "", autocomplete=label, valid=False)
 
         WF.send_feedback()
         return 0
@@ -163,6 +163,7 @@ def main():
                     if label_query.lower() in ' '.join([title, subtitle]).lower():
                         WF.add_item(
                             title, subtitle, autocomplete=autocomplete, valid=False)
+                WF.add_item("...", arg="reopen", valid=True)
         else:
             WF.add_item("Could receive your emails.",
                         "Please try again or file a bug report!", valid=False)

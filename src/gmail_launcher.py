@@ -20,6 +20,10 @@ import config
 
 def execute(wf):
     if len(wf.args):
+        if 'reopen' in wf.args[0]:
+            open_alfred()
+            return 0
+            
         query = json.loads(wf.args[0])
 
         # Start the OAuth flow to retrieve credentials
