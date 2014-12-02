@@ -177,7 +177,7 @@ def main():
                 name, icon=get_icon("inbox"), autocomplete='%s ' % label, valid=False)
 
     # Update list in background
-    if not WF.cached_data_fresh('gmail_list', max_age=30):
+    if not WF.cached_data_fresh('gmail_inbox', max_age=30):
         background_refresh()
 
     WF.send_feedback()
