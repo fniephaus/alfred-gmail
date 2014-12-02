@@ -10,6 +10,7 @@ from workflow import Workflow, PasswordNotFound
 
 import config
 
+WF = Workflow()
 EMAIL_LIST = dict((x,[]) for x in config.SYSTEM_LABELS.keys())
 
 
@@ -40,13 +41,13 @@ def list_threads(label, request_id, response, exception):
                 thread['threadId'] = latest_message['threadId']
 
             if 'snippet' in latest_message:
-                thread['snippet'] = response[
-                    'messages'][-1]['snippet'].encode('utf-8')
+                thread['snippet'] = WF.decode(response[
+                    'messages'][-1]['snippet'])
 
             for header in latest_message['payload']['headers']:
                 if header['name'] in thread:
-                    thread[header['name']] = header[
-                        'value'].encode('utf-8')
+                    thread[header['name']] = WF.decode(header[
+                        'value'])
 
             thread['messages_count'] = len(response['messages'])
             thread['unread'] = 'UNREAD' in latest_message['labelIds']
@@ -55,11 +56,14 @@ def list_threads(label, request_id, response, exception):
                 EMAIL_LIST[label].append(thread)
 
 
-def get_list(wf, http, service, label):
+def get_list(http, service, label):
     if label in config.SYSTEM_LABELS.keys():
         # Retrieve a page of threads
         threads = service.users().threads().list(
             userId='me', labelIds=[label.upper()], maxResults=100).execute()
+
+        if threads['resultSizeEstimate'] == 0 :
+            return []
 
         batch = BatchHttpRequest()
         if 'threads' in threads and len(threads['threads']) > 0:
@@ -76,44 +80,43 @@ def get_list(wf, http, service, label):
         return EMAIL_LIST[label]
 
 
-def get_labels(wf, service):
+def get_labels(service):
     try:
         response = service.users().labels().list(userId='me').execute()
         return response['labels']
     except errors.HttpError, error:
-        wf.logger.debug('An error occurred: %s' % error)
+        WF.logger.debug('An error occurred: %s' % error)
         return []
 
 
 def refresh_cache(labels=None):
     labels = labels if labels is not None else config.SYSTEM_LABELS.keys()
-    wf = Workflow()
     flow = flow_from_clientsecrets(
         config.CLIENT_SECRET_FILE, scope=config.OAUTH_SCOPE)
     http = httplib2.Http()
 
     try:
         credentials = OAuth2Credentials.from_json(
-            wf.get_password('gmail_credentials'))
+            WF.get_password('gmail_credentials'))
         if credentials is None or credentials.invalid:
             credentials = run(flow, PseudoStorage(), http=http)
-            wf.save_password('gmail_credentials', credentials.to_json())
-            wf.logger.debug('Credentials securely updated')
+            WF.save_password('gmail_credentials', credentials.to_json())
+            WF.logger.debug('Credentials securely updated')
 
         http = credentials.authorize(http)
         gmail_service = build('gmail', 'v1', http=http)
 
         for label in labels:
-            wf.cache_data('gmail_%s' % label.lower(), get_list(wf, http, gmail_service, label))
+            WF.cache_data('gmail_%s' % label.lower(), get_list(http, gmail_service, label))
             time.sleep(2)
-        if not wf.cached_data_fresh('gmail_labels', max_age=300):
-            wf.cache_data('gmail_labels', get_labels(wf, gmail_service))
+        if not WF.cached_data_fresh('gmail_labels', max_age=300):
+            WF.cache_data('gmail_labels', get_labels(gmail_service))
 
     except PasswordNotFound:
-        wf.logger.debug('Credentials not found')
+        WF.logger.debug('Credentials not found')
         credentials = run(flow, PseudoStorage(), http=http)
-        wf.save_password('gmail_credentials', credentials.to_json())
-        wf.logger.debug('New Credentials securely saved')
+        WF.save_password('gmail_credentials', credentials.to_json())
+        WF.logger.debug('New Credentials securely saved')
 
 if __name__ == '__main__':
     refresh_cache()
