@@ -7,12 +7,12 @@ from workflow.background import run_in_background, is_running
 import config
 
 THREAD_DELIMITER = 't:'
-OPERATION_PREFIX = '> '
 
 WF = Workflow(update_settings={
     'github_slug': 'fniephaus/alfred-gmail',
     'version': 'v0.3',
 })
+
 
 def main():
     if WF.update_available:
@@ -35,7 +35,7 @@ def main():
             return 0
 
         thread_id = thread_query[0]
-        label_threads = WF.cached_data('gmail_%s' % label.lower(), max_age = 0)
+        label_threads = WF.cached_data('gmail_%s' % label.lower(), max_age=0)
         if label_threads is None:
             WF.add_item("Caching problem", valid=False)
             WF.send_feedback()
@@ -87,49 +87,49 @@ def main():
         else:
             email_title = selected_thread['Subject']
             email_snippet = selected_thread['snippet']
-            WF.add_item(email_title, email_snippet, arg = json.dumps({
+            WF.add_item(email_title, email_snippet, icon=get_icon("info"), arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'open',
                 'label': label,
             }), valid=True)
 
-            WF.add_item(OPERATION_PREFIX + "Mark As Read", "", arg=json.dumps({
+            WF.add_item("Mark As Read", icon=get_icon("mail_read"), arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_read',
                 'query': query,
             }), valid=True)
 
-            WF.add_item(OPERATION_PREFIX + "Archive", "", arg=json.dumps({
+            WF.add_item("Archive", icon=get_icon("package"), arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'archive_conversation',
                 'label': label,
             }), valid=True)
 
             if label != 'TRASH':
-                WF.add_item(OPERATION_PREFIX + "Move To Trash", "", arg=json.dumps({
+                WF.add_item("Move To Trash", icon=get_icon("trashcan"), arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'trash_conversation',
                     'label': label,
                 }), valid=True)
 
             if label != 'INBOX':
-                WF.add_item(OPERATION_PREFIX + "Move To Inbox", "", arg=json.dumps({
+                WF.add_item("Move To Inbox", icon=get_icon("inbox"), arg=json.dumps({
                     'thread_id': thread_id,
                     'action': 'move_to_inbox',
                     'label': label,
                 }), valid=True)
 
-            WF.add_item(OPERATION_PREFIX + "Mark As Unread", "", arg=json.dumps({
+            WF.add_item("Mark As Unread", icon=get_icon("mail"), arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_unread',
                 'query': query,
             }), valid=True)
 
-            WF.add_item(OPERATION_PREFIX + "Quick Reply", "", autocomplete='%s reply ' %
+            WF.add_item("Quick Reply", icon=get_icon("pencil"), autocomplete='%s reply ' %
                         query, valid=False)
-            WF.add_item(OPERATION_PREFIX + "Add label", "", autocomplete='%s label ' %
+            WF.add_item("Add label", icon=get_icon("tag"), autocomplete='%s label ' %
                         query, valid=False)
-            WF.add_item("...", "", autocomplete=label, valid=False)
+            WF.add_item("...", icon=get_icon("reply"), autocomplete=label, valid=False)
 
         WF.send_feedback()
         return 0
@@ -153,17 +153,17 @@ def main():
                             :item['From'].find("<") - 1].replace('"', '')
                     title = '%s (%s): %s' % (
                         name, item['messages_count'], item['Subject'])
-                    if item['unread']:
-                        title = '+ %s' % title
-                    else:
-                        title = '- %s' % title
+                    icon = get_icon("mail") if item[
+                        'unread'] else get_icon("mail_read")
                     subtitle = '%s - %s' % (item['Date'], item['snippet'])
-                    autocomplete = '%s %s%s' % (label, THREAD_DELIMITER, item['threadId'])
+                    autocomplete = '%s %s%s' % (
+                        label, THREAD_DELIMITER, item['threadId'])
 
                     if label_query.lower() in ' '.join([title, subtitle]).lower():
                         WF.add_item(
-                            title, subtitle, autocomplete=autocomplete, valid=False)
-                WF.add_item("...", arg="reopen", valid=True)
+                            title, subtitle, icon=icon, autocomplete=autocomplete, valid=False)
+                WF.add_item(
+                    "...", icon=get_icon("reply"), arg="reopen", valid=True)
         else:
             WF.add_item("Could receive your emails.",
                         "Please try again or file a bug report!", valid=False)
@@ -173,13 +173,18 @@ def main():
 
     for label, name in config.SYSTEM_LABELS.iteritems():
         if not query or query.lower() in name.lower():
-            WF.add_item(name, autocomplete='%s ' % label, valid=False)
+            WF.add_item(
+                name, icon=get_icon("inbox"), autocomplete='%s ' % label, valid=False)
 
     # Update list in background
     if not WF.cached_data_fresh('gmail_list', max_age=30):
         background_refresh()
 
     WF.send_feedback()
+
+
+def get_icon(name):
+    return "icons/%s.png" % name
 
 
 def background_refresh():
