@@ -157,7 +157,7 @@ def main():
                         title = '+ %s' % title
                     else:
                         title = '- %s' % title
-                    subtitle = '%s - %s' % (item['Date'][:-6], item['snippet'])
+                    subtitle = '%s - %s' % (item['Date'], item['snippet'])
                     autocomplete = '%s %s%s' % (label, THREAD_DELIMITER, item['threadId'])
 
                     if label_query.lower() in ' '.join([title, subtitle]).lower():

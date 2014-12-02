@@ -1,5 +1,7 @@
 import httplib2
 import time
+from time import sleep, strftime
+from email.utils import parsedate
 
 from apiclient.discovery import build
 from apiclient.http import BatchHttpRequest
@@ -48,6 +50,12 @@ def list_threads(label, request_id, response, exception):
                 if header['name'] in thread:
                     thread[header['name']] = WF.decode(header[
                         'value'])
+                    if header['name'] == "Date":
+                        thread[header['name']] = get_date(header[
+                            'value'])
+                    else:
+                        thread[header['name']] = WF.decode(header[
+                            'value'])
 
             thread['messages_count'] = len(response['messages'])
             thread['unread'] = 'UNREAD' in latest_message['labelIds']
@@ -56,18 +64,23 @@ def list_threads(label, request_id, response, exception):
                 EMAIL_LIST[label].append(thread)
 
 
+def get_date(date_str):
+    return strftime("%m/%d/%Y %H:%M", parsedate(date_str))
+
+
 def get_list(http, service, label):
     if label in config.SYSTEM_LABELS.keys():
         # Retrieve a page of threads
         threads = service.users().threads().list(
             userId='me', labelIds=[label.upper()], maxResults=100).execute()
 
-        if threads['resultSizeEstimate'] == 0 :
+        if threads['resultSizeEstimate'] == 0:
             return []
 
         batch = BatchHttpRequest()
         if 'threads' in threads and len(threads['threads']) > 0:
             fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
+
             def wrapper(request_id, response, exception):
                 list_threads(label, request_id, response, exception)
 
