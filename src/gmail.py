@@ -93,7 +93,7 @@ def main():
                 'label': label,
             }), valid=True)
 
-            WF.add_item("Mark As Read", icon=get_icon("mail_read"), arg=json.dumps({
+            WF.add_item("Mark As Read", icon=get_icon("mail-read"), arg=json.dumps({
                 'thread_id': thread_id,
                 'action': 'mark_as_read',
                 'query': query,
@@ -129,7 +129,7 @@ def main():
                         query, valid=False)
             WF.add_item("Add label", icon=get_icon("tag"), autocomplete='%s label ' %
                         query, valid=False)
-            WF.add_item("...", icon=get_icon("reply"), autocomplete=label, valid=False)
+            WF.add_item("...", icon=get_icon("mail-reply"), autocomplete=label, valid=False)
 
         WF.send_feedback()
         return 0
@@ -151,10 +151,14 @@ def main():
                     if item['From']:
                         name = item['From'][
                             :item['From'].find("<") - 1].replace('"', '')
-                    title = '%s (%s): %s' % (
-                        name, item['messages_count'], item['Subject'])
+                    if item['messages_count'] > 1:
+                        title = '%s (%s): %s' % (
+                            name, item['messages_count'], item['Subject'])
+                    else:
+                        title = '%s: %s' % (
+                            name, item['Subject'])
                     icon = get_icon("mail") if item[
-                        'unread'] else get_icon("mail_read")
+                        'unread'] else get_icon("mail-read")
                     subtitle = '%s - %s' % (item['Date'], item['snippet'])
                     autocomplete = '%s %s%s' % (
                         label, THREAD_DELIMITER, item['threadId'])
@@ -163,7 +167,7 @@ def main():
                         WF.add_item(
                             title, subtitle, icon=icon, autocomplete=autocomplete, valid=False)
                 WF.add_item(
-                    "...", icon=get_icon("reply"), arg="reopen", valid=True)
+                    "...", icon=get_icon("mail-reply"), arg="reopen", valid=True)
         else:
             WF.add_item("Could receive your emails.",
                         "Please try again or file a bug report!", valid=False)
@@ -184,7 +188,11 @@ def main():
 
 
 def get_icon(name):
+    name = '%s-dark' % name if is_dark() else name
     return "icons/%s.png" % name
+
+def is_dark():
+    return min([int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]) < 128
 
 
 def background_refresh():
