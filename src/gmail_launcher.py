@@ -250,7 +250,7 @@ def add_label(service, thread_id, label):
 def open_alfred(query=None):
     query = query or ''
     os.system(
-        """ osascript -e 'tell application "Alfred 2" to search "gmail %s"' """ %
+        """ osascript -e 'tell application "Alfred 2" to run trigger "open" in workflow "com.fniephaus.gmail" with argument "%s"' """ %
         query)
 
 
