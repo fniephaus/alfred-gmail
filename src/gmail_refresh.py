@@ -136,5 +136,8 @@ def refresh_cache(labels=None):
         WF.save_password('gmail_credentials', credentials.to_json())
         WF.logger.debug('New Credentials securely saved')
 
+    except httplib2.ServerNotFoundError:
+        WF.logger.debug('ServerNotFoundError')
+
 if __name__ == '__main__':
     refresh_cache()
