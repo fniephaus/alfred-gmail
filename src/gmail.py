@@ -109,7 +109,12 @@ def main():
                 )
         else:
             add_mail_actions(
-                selected_thread['Subject'], selected_thread['snippet'], label)
+                thread_id,
+                query,
+                selected_thread['Subject'],
+                selected_thread['snippet'], 
+                label
+            )
 
         WF.send_feedback()
         return 0
@@ -184,7 +189,7 @@ def add_mails(item_list, label, label_query):
                 valid=False
             )
 
-def add_mail_actions(title, snippet, label):
+def add_mail_actions(thread_id, query, title, snippet, label):
     WF.add_item(title, snippet, icon=get_icon("info"), arg=json.dumps({
         'thread_id': thread_id,
         'action': 'open',
