@@ -10,7 +10,7 @@ THREAD_DELIMITER = 't:'
 
 WF = Workflow(update_settings={
     'github_slug': 'fniephaus/alfred-gmail',
-    'version': 'v0.3',
+    'version': 'v1.0',
 })
 
 
