@@ -10,14 +10,13 @@ THREAD_DELIMITER = 't:'
 
 WF = Workflow(update_settings={
     'github_slug': 'fniephaus/alfred-gmail',
-    'version': 'v0.3',
+    'version': 'v1.1',
 })
 
 
 def main():
     if WF.update_available:
-        subtitle = 'New: %s' % WF.update_info['body']
-        WF.add_item("An update is available!", subtitle,
+        WF.add_item("An update is available!",
                     icon=get_icon("cloud-download"),
                     autocomplete='workflow:update',
                     valid=False
