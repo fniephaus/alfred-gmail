@@ -6,15 +6,22 @@ from workflow.background import run_in_background, is_running
 
 import config
 
+# Set delimiter to be used in thread queries
 THREAD_DELIMITER = 't:'
+# GitHub repo for self-updating
+GITHUB_UPDATE_CONF = {'github_slug': 'fniephaus/alfred-gmail'}
+# GitHub Issues
+HELP_URL = 'https://github.com/fniephaus/alfred-gmail/issues'
 
-WF = Workflow(update_settings={
-    'github_slug': 'fniephaus/alfred-gmail',
-    'version': 'v1.1',
-})
+WF = Workflow(update_settings=GITHUB_UPDATE_CONF, help_url=HELP_URL)
 
 
 def main():
+    if WF.first_run:
+        WF.clear_cache()
+
+    register_magic_arguments()
+
     if WF.update_available:
         WF.add_item("An update is available!",
                     icon=get_icon("cloud-download"),
@@ -22,10 +29,10 @@ def main():
                     valid=False
                     )
 
+    # Get user input
+    query = None
     if len(WF.args):
         query = WF.args[0]
-    else:
-        query = None
 
     if query and THREAD_DELIMITER in query:
         label = query.split()[0]
@@ -129,15 +136,15 @@ def main():
         if item_list is not None:
             if len(item_list) == 0:
                 WF.add_item(
-                    'No mails found!', icon=get_icon("alert"), arg="reopen", valid=True)
+                    'No mails found!', icon=get_icon("alert"), autocomplete="", valid=False)
             else:
                 add_mails(item_list, label, label_query)
                 
             WF.add_item(
                 "...",
                 icon=get_icon("mail-reply"),
-                arg="reopen",
-                valid=True
+                autocomplete="",
+                valid=False
             )
         else:
             WF.add_item("Could receive your emails.",
@@ -241,7 +248,17 @@ def get_icon(name):
 
 
 def is_dark():
-    return min([int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]) < 128
+    rgb = [int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]
+    return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] ) / 255 < 0.5
+
+
+def register_magic_arguments():
+    WF.magic_prefix = 'wf:'
+
+    def delete_access_token():
+        WF.delete_password('gmail_credentials')
+        return 'Access token has been deleted successfully.'
+    WF.magic_arguments['deauth'] = delete_access_token
 
 
 def background_refresh():
