@@ -78,11 +78,8 @@ def get_list(http, service, label):
         threads = service.users().threads().list(
             userId='me', labelIds=[label.upper()], maxResults=100).execute()
 
-        if threads['resultSizeEstimate'] == 0:
-            return []
-
-        batch = BatchHttpRequest()
         if 'threads' in threads and len(threads['threads']) > 0:
+            batch = BatchHttpRequest()
             fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
 
             def wrapper(request_id, response, exception):
@@ -94,7 +91,8 @@ def get_list(http, service, label):
 
             batch.execute(http=http)
 
-        return EMAIL_LIST[label]
+            return EMAIL_LIST[label]
+        return []
 
 
 def get_labels(service):
