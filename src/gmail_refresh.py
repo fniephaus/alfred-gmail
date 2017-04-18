@@ -3,8 +3,9 @@ from time import sleep, strftime
 from email.utils import parsedate
 from HTMLParser import HTMLParser
 
-from apiclient.discovery import build
-from apiclient.http import BatchHttpRequest
+from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
+from googleapiclient.http import BatchHttpRequest
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
 from oauth2client.tools import run
 
@@ -15,6 +16,8 @@ import config
 WF = Workflow()
 HP = HTMLParser()
 EMAIL_LIST = dict((x, []) for x in config.SYSTEM_LABELS.keys())
+FIELDS = """'messages/id,messages/threadId,messages/labelIds,messages/snippet,\
+messages/payload/headers'"""
 
 
 class PseudoStorage():
@@ -80,14 +83,15 @@ def get_list(http, service, label):
 
         if 'threads' in threads and len(threads['threads']) > 0:
             batch = BatchHttpRequest()
-            fields = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
 
             def wrapper(request_id, response, exception):
                 list_threads(label, request_id, response, exception)
 
             for thread in threads['threads']:
-                batch.add(service.users().threads().get(
-                    userId='me', id=thread['id'], fields=fields), callback=wrapper)
+                batch.add(
+                    service.users().threads().get(
+                        userId='me', id=thread['id'], fields=FIELDS),
+                    callback=wrapper)
 
             batch.execute(http=http)
 
@@ -99,7 +103,7 @@ def get_labels(service):
     try:
         response = service.users().labels().list(userId='me').execute()
         return response['labels']
-    except errors.HttpError, error:
+    except HttpError as error:
         WF.logger.debug('An error occurred: %s' % error)
         return []
 
