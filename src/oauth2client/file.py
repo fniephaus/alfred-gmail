@@ -1,4 +1,4 @@
-# Copyright (C) 2010 Google Inc.
+# Copyright 2014 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,107 +18,78 @@ Utilities for making it easier to work with OAuth 2.0
 credentials.
 """
 
-__author__ = 'jcgregorio@google.com (Joe Gregorio)'
-
 import os
-import stat
 import threading
 
-from anyjson import simplejson
-from client import Storage as BaseStorage
-from client import Credentials
+from oauth2client import _helpers
+from oauth2client import client
 
 
-class CredentialsFileSymbolicLinkError(Exception):
-  """Credentials files must not be symbolic links."""
+class Storage(client.Storage):
+    """Store and retrieve a single credential to and from a file."""
 
+    def __init__(self, filename):
+        super(Storage, self).__init__(lock=threading.Lock())
+        self._filename = filename
 
-class Storage(BaseStorage):
-  """Store and retrieve a single credential to and from a file."""
+    def locked_get(self):
+        """Retrieve Credential from file.
 
-  def __init__(self, filename):
-    self._filename = filename
-    self._lock = threading.Lock()
+        Returns:
+            oauth2client.client.Credentials
 
-  def _validate_file(self):
-    if os.path.islink(self._filename):
-      raise CredentialsFileSymbolicLinkError(
-          'File: %s is a symbolic link.' % self._filename)
+        Raises:
+            IOError if the file is a symbolic link.
+        """
+        credentials = None
+        _helpers.validate_file(self._filename)
+        try:
+            f = open(self._filename, 'rb')
+            content = f.read()
+            f.close()
+        except IOError:
+            return credentials
 
-  def acquire_lock(self):
-    """Acquires any lock necessary to access this Storage.
+        try:
+            credentials = client.Credentials.new_from_json(content)
+            credentials.set_store(self)
+        except ValueError:
+            pass
 
-    This lock is not reentrant."""
-    self._lock.acquire()
+        return credentials
 
-  def release_lock(self):
-    """Release the Storage lock.
+    def _create_file_if_needed(self):
+        """Create an empty file if necessary.
 
-    Trying to release a lock that isn't held will result in a
-    RuntimeError.
-    """
-    self._lock.release()
+        This method will not initialize the file. Instead it implements a
+        simple version of "touch" to ensure the file has been created.
+        """
+        if not os.path.exists(self._filename):
+            old_umask = os.umask(0o177)
+            try:
+                open(self._filename, 'a+b').close()
+            finally:
+                os.umask(old_umask)
 
-  def locked_get(self):
-    """Retrieve Credential from file.
+    def locked_put(self, credentials):
+        """Write Credentials to file.
 
-    Returns:
-      oauth2client.client.Credentials
+        Args:
+            credentials: Credentials, the credentials to store.
 
-    Raises:
-      CredentialsFileSymbolicLinkError if the file is a symbolic link.
-    """
-    credentials = None
-    self._validate_file()
-    try:
-      f = open(self._filename, 'rb')
-      content = f.read()
-      f.close()
-    except IOError:
-      return credentials
+        Raises:
+            IOError if the file is a symbolic link.
+        """
+        self._create_file_if_needed()
+        _helpers.validate_file(self._filename)
+        f = open(self._filename, 'w')
+        f.write(credentials.to_json())
+        f.close()
 
-    try:
-      credentials = Credentials.new_from_json(content)
-      credentials.set_store(self)
-    except ValueError:
-      pass
+    def locked_delete(self):
+        """Delete Credentials file.
 
-    return credentials
-
-  def _create_file_if_needed(self):
-    """Create an empty file if necessary.
-
-    This method will not initialize the file. Instead it implements a
-    simple version of "touch" to ensure the file has been created.
-    """
-    if not os.path.exists(self._filename):
-      old_umask = os.umask(0177)
-      try:
-        open(self._filename, 'a+b').close()
-      finally:
-        os.umask(old_umask)
-
-  def locked_put(self, credentials):
-    """Write Credentials to file.
-
-    Args:
-      credentials: Credentials, the credentials to store.
-
-    Raises:
-      CredentialsFileSymbolicLinkError if the file is a symbolic link.
-    """
-
-    self._create_file_if_needed()
-    self._validate_file()
-    f = open(self._filename, 'wb')
-    f.write(credentials.to_json())
-    f.close()
-
-  def locked_delete(self):
-    """Delete Credentials file.
-
-    Args:
-      credentials: Credentials, the credentials to store.
-    """
-
-    os.unlink(self._filename)
+        Args:
+            credentials: Credentials, the credentials to store.
+        """
+        os.unlink(self._filename)

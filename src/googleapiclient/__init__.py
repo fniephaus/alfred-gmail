@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All rights reserved.
+# Copyright 2014 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Client library for using OAuth2, especially with Google APIs."""
+__version__ = "1.6.2"
 
-__version__ = '4.0.0'
+# Set default logging handler to avoid "No handler found" warnings.
+import logging
 
-GOOGLE_AUTH_URI = 'https://accounts.google.com/o/oauth2/v2/auth'
-GOOGLE_DEVICE_URI = 'https://accounts.google.com/o/oauth2/device/code'
-GOOGLE_REVOKE_URI = 'https://accounts.google.com/o/oauth2/revoke'
-GOOGLE_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
-GOOGLE_TOKEN_INFO_URI = 'https://www.googleapis.com/oauth2/v3/tokeninfo'
+try:  # Python 2.7+
+    from logging import NullHandler
+except ImportError:
+    class NullHandler(logging.Handler):
+        def emit(self, record):
+            pass
+
+logging.getLogger(__name__).addHandler(NullHandler())
