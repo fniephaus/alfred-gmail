@@ -7,7 +7,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 from googleapiclient.http import BatchHttpRequest
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
-from oauth2client.tools import run
+from oauth2client.tools import run_flow
 
 from workflow import Workflow, PasswordNotFound
 
@@ -118,7 +118,7 @@ def refresh_cache(labels=None):
         credentials = OAuth2Credentials.from_json(
             WF.get_password('gmail_credentials'))
         if credentials is None or credentials.invalid:
-            credentials = run(flow, PseudoStorage(), http=http)
+            credentials = run_flow(flow, PseudoStorage(), http=http)
             WF.save_password('gmail_credentials', credentials.to_json())
             WF.logger.debug('Credentials securely updated')
 
@@ -134,7 +134,7 @@ def refresh_cache(labels=None):
 
     except PasswordNotFound:
         WF.logger.debug('Credentials not found')
-        credentials = run(flow, PseudoStorage(), http=http)
+        credentials = run_flow(flow, PseudoStorage(), http=http)
         WF.save_password('gmail_credentials', credentials.to_json())
         WF.logger.debug('New Credentials securely saved')
 
