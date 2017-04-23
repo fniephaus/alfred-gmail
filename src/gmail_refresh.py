@@ -16,8 +16,7 @@ import config
 WF = Workflow()
 HP = HTMLParser()
 EMAIL_LIST = dict((x, []) for x in config.SYSTEM_LABELS.keys())
-FIELDS = """'messages/id,messages/threadId,messages/labelIds,messages/snippet,\
-messages/payload/headers'"""
+FIELDS = 'messages/id,messages/threadId,messages/labelIds,messages/snippet,messages/payload/headers'
 
 
 class PseudoStorage():
