@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from googleapiclient import errors
 from oauth2client.client import flow_from_clientsecrets, OAuth2Credentials
-from oauth2client.tools import run
+from oauth2client.tools import run_flow
 
 from workflow import Workflow, PasswordNotFound
 from gmail_refresh import refresh_cache, PseudoStorage
@@ -39,7 +39,7 @@ def execute(wf):
             credentials = OAuth2Credentials.from_json(
                 wf.get_password('gmail_credentials'))
             if credentials is None or credentials.invalid:
-                credentials = run(flow, PseudoStorage(), http=http)
+                credentials = run_flow(flow, PseudoStorage(), http=http)
                 wf.save_password('gmail_credentials', credentials.to_json())
             # Authorize the httplib2.Http object with our credentials
             http = credentials.authorize(http)
