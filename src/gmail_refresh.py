@@ -82,7 +82,7 @@ def get_list(http, service, label):
             userId='me', labelIds=[label.upper()], maxResults=100).execute()
 
         if 'threads' in threads and len(threads['threads']) > 0:
-            batch = BatchHttpRequest()
+            batch = service.new_batch_http_request()
 
             def wrapper(request_id, response, exception):
                 list_threads(label, request_id, response, exception)
