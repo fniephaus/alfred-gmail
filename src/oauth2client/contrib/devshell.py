@@ -37,7 +37,6 @@ class CommunicationError(Error):
 class NoDevshellServer(Error):
     """Error when no Developer Shell server can be contacted."""
 
-
 # The request for credential information to the Developer Shell client socket
 # is always an empty PBLite-formatted JSON object, so just define it as a
 # constant.
@@ -118,12 +117,7 @@ class DevshellCredentials(client.GoogleCredentials):
             user_agent)
         self._refresh(None)
 
-    def _refresh(self, http):
-        """Refreshes the access token.
-
-        Args:
-            http: unused HTTP object
-        """
+    def _refresh(self, http_request):
         self.devshell_response = _SendRecv()
         self.access_token = self.devshell_response.access_token
         expires_in = self.devshell_response.expires_in

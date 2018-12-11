@@ -30,10 +30,11 @@ from six.moves import http_client
 from six.moves import input
 from six.moves import urllib
 
-from oauth2client import _helpers
 from oauth2client import client
+from oauth2client import util
 
 
+__author__ = 'jcgregorio@google.com (Joe Gregorio)'
 __all__ = ['argparser', 'run_flow', 'message_if_missing']
 
 _CLIENT_SECRETS_MESSAGE = """WARNING: Please configure OAuth 2.0
@@ -92,7 +93,6 @@ def _CreateArgumentParser():
         help='Set the logging level of detail.')
     return parser
 
-
 # argparser is an ArgumentParser that contains command-line options expected
 # by tools.run(). Pass it in as part of the 'parents' argument to your own
 # ArgumentParser.
@@ -123,22 +123,22 @@ class ClientRedirectHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if an error occurred.
         """
         self.send_response(http_client.OK)
-        self.send_header('Content-type', 'text/html')
+        self.send_header("Content-type", "text/html")
         self.end_headers()
-        parts = urllib.parse.urlparse(self.path)
-        query = _helpers.parse_unique_urlencoded(parts.query)
+        query = self.path.split('?', 1)[-1]
+        query = dict(urllib.parse.parse_qsl(query))
         self.server.query_params = query
         self.wfile.write(
-            b'<html><head><title>Authentication Status</title></head>')
+            b"<html><head><title>Authentication Status</title></head>")
         self.wfile.write(
-            b'<body><p>The authentication flow has completed.</p>')
-        self.wfile.write(b'</body></html>')
+            b"<body><p>The authentication flow has completed.</p>")
+        self.wfile.write(b"</body></html>")
 
     def log_message(self, format, *args):
         """Do not log messages to stdout while running as cmd. line program."""
 
 
-@_helpers.positional(3)
+@util.positional(3)
 def run_flow(flow, storage, flags=None, http=None):
     """Core code for a command-line application.
 

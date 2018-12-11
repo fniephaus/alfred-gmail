@@ -19,7 +19,6 @@ import pickle
 
 from django.db import models
 from django.utils import encoding
-import jsonpickle
 
 import oauth2client
 
@@ -49,12 +48,7 @@ class CredentialsField(models.Field):
         elif isinstance(value, oauth2client.client.Credentials):
             return value
         else:
-            try:
-                return jsonpickle.decode(
-                    base64.b64decode(encoding.smart_bytes(value)).decode())
-            except ValueError:
-                return pickle.loads(
-                    base64.b64decode(encoding.smart_bytes(value)))
+            return pickle.loads(base64.b64decode(encoding.smart_bytes(value)))
 
     def get_prep_value(self, value):
         """Overrides ``models.Field`` method. This is used to convert
@@ -64,8 +58,7 @@ class CredentialsField(models.Field):
         if value is None:
             return None
         else:
-            return encoding.smart_text(
-                base64.b64encode(jsonpickle.encode(value).encode()))
+            return encoding.smart_text(base64.b64encode(pickle.dumps(value)))
 
     def value_to_string(self, obj):
         """Convert the field value from the provided model to a string.

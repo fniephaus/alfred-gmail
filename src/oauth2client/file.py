@@ -21,8 +21,14 @@ credentials.
 import os
 import threading
 
-from oauth2client import _helpers
 from oauth2client import client
+
+
+__author__ = 'jcgregorio@google.com (Joe Gregorio)'
+
+
+class CredentialsFileSymbolicLinkError(Exception):
+    """Credentials files must not be symbolic links."""
 
 
 class Storage(client.Storage):
@@ -32,6 +38,11 @@ class Storage(client.Storage):
         super(Storage, self).__init__(lock=threading.Lock())
         self._filename = filename
 
+    def _validate_file(self):
+        if os.path.islink(self._filename):
+            raise CredentialsFileSymbolicLinkError(
+                'File: {0} is a symbolic link.'.format(self._filename))
+
     def locked_get(self):
         """Retrieve Credential from file.
 
@@ -39,10 +50,10 @@ class Storage(client.Storage):
             oauth2client.client.Credentials
 
         Raises:
-            IOError if the file is a symbolic link.
+            CredentialsFileSymbolicLinkError if the file is a symbolic link.
         """
         credentials = None
-        _helpers.validate_file(self._filename)
+        self._validate_file()
         try:
             f = open(self._filename, 'rb')
             content = f.read()
@@ -78,10 +89,10 @@ class Storage(client.Storage):
             credentials: Credentials, the credentials to store.
 
         Raises:
-            IOError if the file is a symbolic link.
+            CredentialsFileSymbolicLinkError if the file is a symbolic link.
         """
         self._create_file_if_needed()
-        _helpers.validate_file(self._filename)
+        self._validate_file()
         f = open(self._filename, 'w')
         f.write(credentials.to_json())
         f.close()

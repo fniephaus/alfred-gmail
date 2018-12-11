@@ -19,28 +19,29 @@ See https://cloud.google.com/compute/docs/metadata
 
 import datetime
 import json
-import os
 
+import httplib2
 from six.moves import http_client
 from six.moves.urllib import parse as urlparse
 
 from oauth2client import _helpers
 from oauth2client import client
-from oauth2client import transport
+from oauth2client import util
 
 
-METADATA_ROOT = 'http://{}/computeMetadata/v1/'.format(
-    os.getenv('GCE_METADATA_ROOT', 'metadata.google.internal'))
+METADATA_ROOT = 'http://metadata.google.internal/computeMetadata/v1/'
 METADATA_HEADERS = {'Metadata-Flavor': 'Google'}
 
 
-def get(http, path, root=METADATA_ROOT, recursive=None):
+def get(http_request, path, root=METADATA_ROOT, recursive=None):
     """Fetch a resource from the metadata server.
 
     Args:
-        http: an object to be used to make HTTP requests.
         path: A string indicating the resource to retrieve. For example,
-            'instance/service-accounts/default'
+            'instance/service-accounts/defualt'
+        http_request: A callable that matches the method
+            signature of httplib2.Http.request. Used to make the request to the
+            metadataserver.
         root: A string indicating the full path to the metadata server root.
         recursive: A boolean indicating whether to do a recursive query of
             metadata. See
@@ -50,14 +51,15 @@ def get(http, path, root=METADATA_ROOT, recursive=None):
         A dictionary if the metadata server returns JSON, otherwise a string.
 
     Raises:
-        http_client.HTTPException if an error corrured while
-        retrieving metadata.
+        httplib2.Httplib2Error if an error corrured while retrieving metadata.
     """
     url = urlparse.urljoin(root, path)
-    url = _helpers._add_query_parameter(url, 'recursive', recursive)
+    url = util._add_query_parameter(url, 'recursive', recursive)
 
-    response, content = transport.request(
-        http, url, headers=METADATA_HEADERS)
+    response, content = http_request(
+        url,
+        headers=METADATA_HEADERS
+    )
 
     if response.status == http_client.OK:
         decoded = _helpers._from_bytes(content)
@@ -66,20 +68,21 @@ def get(http, path, root=METADATA_ROOT, recursive=None):
         else:
             return decoded
     else:
-        raise http_client.HTTPException(
+        raise httplib2.HttpLib2Error(
             'Failed to retrieve {0} from the Google Compute Engine'
             'metadata service. Response:\n{1}'.format(url, response))
 
 
-def get_service_account_info(http, service_account='default'):
+def get_service_account_info(http_request, service_account='default'):
     """Get information about a service account from the metadata server.
 
     Args:
-        http: an object to be used to make HTTP requests.
         service_account: An email specifying the service account for which to
             look up information. Default will be information for the "default"
             service account of the current compute engine instance.
-
+        http_request: A callable that matches the method
+            signature of httplib2.Http.request. Used to make the request to the
+            metadata server.
     Returns:
          A dictionary with information about the specified service account,
          for example:
@@ -91,19 +94,21 @@ def get_service_account_info(http, service_account='default'):
             }
     """
     return get(
-        http,
+        http_request,
         'instance/service-accounts/{0}/'.format(service_account),
         recursive=True)
 
 
-def get_token(http, service_account='default'):
+def get_token(http_request, service_account='default'):
     """Fetch an oauth token for the
 
     Args:
-        http: an object to be used to make HTTP requests.
         service_account: An email specifying the service account this token
             should represent. Default will be a token for the "default" service
             account of the current compute engine instance.
+        http_request: A callable that matches the method
+            signature of httplib2.Http.request. Used to make the request to the
+            metadataserver.
 
     Returns:
          A tuple of (access token, token expiration), where access token is the
@@ -111,7 +116,7 @@ def get_token(http, service_account='default'):
          that indicates when the access token will expire.
     """
     token_json = get(
-        http,
+        http_request,
         'instance/service-accounts/{0}/token'.format(service_account))
     token_expiry = client._UTCNOW() + datetime.timedelta(
         seconds=token_json['expires_in'])

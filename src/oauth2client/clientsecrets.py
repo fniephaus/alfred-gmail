@@ -22,6 +22,7 @@ import json
 
 import six
 
+__author__ = 'jcgregorio@google.com (Joe Gregorio)'
 
 # Properties that make a client_secrets.json file valid.
 TYPE_WEB = 'web'

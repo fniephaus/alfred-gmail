@@ -52,9 +52,6 @@ Add the helper to your INSTALLED_APPS:
 
 This helper also requires the Django Session Middleware, so
 ``django.contrib.sessions.middleware`` should be in INSTALLED_APPS as well.
-MIDDLEWARE or MIDDLEWARE_CLASSES (in Django  versions <1.10) should also
-contain the string 'django.contrib.sessions.middleware.SessionMiddleware'.
-
 
 Add the client secrets created earlier to the settings. You can either
 specify the path to the credentials file in JSON format
@@ -231,10 +228,10 @@ import importlib
 import django.conf
 from django.core import exceptions
 from django.core import urlresolvers
+import httplib2
 from six.moves.urllib import parse
 
 from oauth2client import clientsecrets
-from oauth2client import transport
 from oauth2client.contrib import dictionary_storage
 from oauth2client.contrib.django_util import storage
 
@@ -338,26 +335,16 @@ class OAuth2Settings(object):
         self.request_prefix = getattr(settings_instance,
                                       'GOOGLE_OAUTH2_REQUEST_ATTRIBUTE',
                                       GOOGLE_OAUTH2_REQUEST_ATTRIBUTE)
-        info = _get_oauth2_client_id_and_secret(settings_instance)
-        self.client_id, self.client_secret = info
+        self.client_id, self.client_secret = \
+            _get_oauth2_client_id_and_secret(settings_instance)
 
-        # Django 1.10 deprecated MIDDLEWARE_CLASSES in favor of MIDDLEWARE
-        middleware_settings = getattr(settings_instance, 'MIDDLEWARE', None)
-        if middleware_settings is None:
-            middleware_settings = getattr(
-                settings_instance, 'MIDDLEWARE_CLASSES', None)
-        if middleware_settings is None:
+        if ('django.contrib.sessions.middleware.SessionMiddleware'
+           not in settings_instance.MIDDLEWARE_CLASSES):
             raise exceptions.ImproperlyConfigured(
-                'Django settings has neither MIDDLEWARE nor MIDDLEWARE_CLASSES'
-                'configured')
-
-        if ('django.contrib.sessions.middleware.SessionMiddleware' not in
-                middleware_settings):
-            raise exceptions.ImproperlyConfigured(
-                'The Google OAuth2 Helper requires session middleware to '
-                'be installed. Edit your MIDDLEWARE_CLASSES or MIDDLEWARE '
-                'setting to include \'django.contrib.sessions.middleware.'
-                'SessionMiddleware\'.')
+                  'The Google OAuth2 Helper requires session middleware to '
+                  'be installed. Edit your MIDDLEWARE_CLASSES setting'
+                  ' to include \'django.contrib.sessions.middleware.'
+                  'SessionMiddleware\'.')
         (self.storage_model, self.storage_model_user_property,
          self.storage_model_credentials_property) = _get_storage_model()
 
@@ -483,7 +470,8 @@ class UserOAuth2(object):
 
     @property
     def http(self):
-        """Helper: create HTTP client authorized with OAuth2 credentials."""
+        """Helper method to create an HTTP client authorized with OAuth2
+        credentials."""
         if self.has_credentials():
-            return self.credentials.authorize(transport.get_http_object())
+            return self.credentials.authorize(httplib2.Http())
         return None
